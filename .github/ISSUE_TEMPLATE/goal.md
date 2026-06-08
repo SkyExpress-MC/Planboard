@@ -1,12 +1,3 @@
----
-name: Goal
-about: Template to describe goals.
-title: Goal title
-labels: ''
-assignees: ''
-
----
-
 name: Goal
 description: A goal containing multiple tasks
 title: "📍 "
