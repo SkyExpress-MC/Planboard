@@ -1,0 +1,25 @@
+name: Task
+description: A sub-issue bound to a goal
+title: "📋 "
+type: Task
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Information
+      description: Write any important information about the task.
+      placeholder: Important information
+    validations:
+      required: false
+  - type: dropdown
+    id: tasktype
+    attributes:
+      label: Type of task
+      multiple: false
+      default: 0
+      options:
+        - Discover
+        - Create
+        - Rework
+    validations:
+      required: true
