@@ -1,0 +1,2 @@
+on join:
+    broadcast: "Armor is now availlable through Leeroy's Asscrack"
