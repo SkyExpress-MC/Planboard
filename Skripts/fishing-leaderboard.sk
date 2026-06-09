@@ -1,4 +1,0 @@
-on load:
-    broadcast "hi"
-    broadcast "Leeroy is a dickhead"
-
