@@ -1,0 +1,19 @@
+name: Test Skript Syntax
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: Andromedov/skript-tests-action@v1.0
+        with:
+          minecraft-version: '1.21'
+          skript-version: '2.12.1'
+          path-to-skripts: './scripts'
+          path-to-addons: './addons'
+          server-software: 'paper'
