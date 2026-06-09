@@ -64,57 +64,60 @@ function createProfileGui(p: player, target: offline player):
 				set {_boots} to {@noBoots}
 			else if {_boots} is air:
 				set {_boots} to {@noBoots}
-	set {_rank} to {data::profile::rank::%{_targetName}%} ? "&7None"
-	set {_balance} to {data::balance::%{_targetName}%} ? 0
-	if {data::balance::%{_uuid}%} is set:
-		if {_balance} is 0:
-			set {_balance} to {data::balance::%{_uuid}%}
-	set {_blocks} to {data::blocks_mined::%{_targetName}%} ? 0
-	if {data::blocks_mined::%{_uuid}%} is set:
-		if {_blocks} is 0:
-			set {_blocks} to {data::blocks_mined::%{_uuid}%}
-	set {_level} to {data::level::%{_targetName}%} ? 0
-	if {data::level::%{_uuid}%} is set:
-		if {_level} is 0:
-			set {_level} to {data::level::%{_uuid}%}
-	set {_prestige} to {data::prestige::%{_targetName}%} ? 0
-	if {data::prestige::%{_uuid}%} is set:
-		if {_prestige} is 0:
-			set {_prestige} to {data::prestige::%{_uuid}%}
-	set {_kills} to {data::kills::%{_targetName}%} ? 0
-	if {data::kills::%{_uuid}%} is set:
-		if {_kills} is 0:
-			set {_kills} to {data::kills::%{_uuid}%}
-	set {_deaths} to {data::deaths::%{_targetName}%} ? 0
-	if {data::deaths::%{_uuid}%} is set:
-		if {_deaths} is 0:
-			set {_deaths} to {data::deaths::%{_uuid}%}
+
 	set {_playtime} to formatProfilePlaytime({data::playtime::%{_targetName}%} ? time played of {_target})
-	create a gui with id "profile::%{_p}'s uuid%" with virtual chest inventory with 6 rows named "&6&l%{_target}%'s Profile":
+	set {_rank} to the placeholder "luckperms_prefix" from {_target}
+	create a gui with id "profile::%{_p}'s uuid%" with virtual chest inventory with 4 rows named "&6&l%{_target}%'s Profile":
 		loop 54 times:
 			set {_slot} to loop-number - 1
 			make gui slot {_slot} with black stained glass pane named "&7"
-		make gui slot 10 with {_helmet}
-		make gui slot 19 with {_chestplate}
-		make gui slot 28 with {_leggings}
-		make gui slot 37 with {_boots}
-		make gui slot 13 with skull of {_target} named "&6&l%{_target}%" with lore "&8Player Overview" and "" and "&7Rank: %{_rank}%" and "&7Playtime: &e%{_playtime}%" and "" and "&eClick for perks and multipliers.":
-			createProfileStatsGui({_p}, {_target})
-		make gui slot 21 with experience bottle named "&b&lLevel" with lore "&8Progress" and "" and "&7Current: &b%formatNumbers({_level})%"
-		make gui slot 22 with nether star named "&d&lPrestige" with lore "&8Rebirth" and "" and "&7Current: &d%formatNumbers({_prestige})%"
-		make gui slot 23 with emerald named "&a&lBalance" with lore "&8Economy" and "" and "&7Balance: &a%formatNumbers({_balance})%"
-		make gui slot 30 with golden pickaxe named "&e&lBlocks Mined" with lore "&8Mining" and "" and "&7Total: &6%formatNumbers({_blocks})%"
-		make gui slot 31 with netherite sword named "&c&lKills" with lore "&8Combat" and "" and "&7PvP Kills: &c%formatNumbers({_kills})%"
-		make gui slot 32 with totem of undying named "&4&lDeaths" with lore "&8Combat" and "" and "&7PvP Deaths: &4%formatNumbers({_deaths})%"
-		make gui slot 39 with clock named "&6&lPlaytime" with lore "&8Activity" and "" and "&7Time Played: &e%{_playtime}%"
-		make gui slot 40 with armor stand named "&d&lEquipped Armor" with lore "&8Current gear" and "" and "&7Shown on the left side."
-		make gui slot 41 with book named "&6&lPerks & Multipliers" with lore "&8Detailed Profile" and "" and "&7View prestige skills," and "&7boosts, tokens, and streaks." and "" and "&eClick to open.":
-			createProfileStatsGui({_p}, {_target})
-		make gui slot 53 with barrier named "&cClose":
+		make gui slot 9 with skull of {_target} named "&6&l%{_target}%" with lore "&8Player Overview" and "" and "&7Rank: %{_rank}%" and "&7Playtime: &e%{_playtime}%"
+		make gui slot 18 with netherite sword named "&6Player's held item" with lore "" and "&7Show red pane if equipped nothing"
+			
+		make gui slot 1 with {_helmet}
+		make gui slot 10 with {_chestplate}
+		make gui slot 19 with {_leggings}
+		make gui slot 28 with {_boots}
+
+		make gui slot 12 with shiny black bundle named "<color:#118215>💲 Balance" with lore "&8&oᴄᴜʀʀᴇɴᴄʏ" and " " and "&7Balance: &a%formatNumbers({data::balance::%{_p}%})%" with item flags hide additional tooltip
+		make gui slot 13 with shiny purple bundle named "<color:#D32FD3>⛃ Tokens" with lore "&8&oᴄᴜʀʀᴇɴᴄʏ " and " " and "&7Current: &b%formatNumbers({data::tokens::%{_p}%})%" with item flags hide additional tooltip		
+		make gui slot 14 with experience bottle named "<color:#4873d9>📊 Level" with lore "&8&oᴘʀᴏɢʀᴇꜱꜱɪᴏɴ" and " " and "&7Current: &b%formatNumbers({data::level::%{_p}%})%"		
+		make gui slot 15 with nether star named "<color:#E6DB83>🏆 Prestige" with lore "&8&oᴘʀᴏɢʀᴇꜱꜱɪᴏɴ" and " " and "&7Current: &d%formatNumbers({data::prestige::%{_p}%})%" and " " and "&e➥ &e&oClick to few prestige stats":
+			prestigeStats({_p}, {_target})
+		make gui slot 16 with clock named "<color:#A6D32F>⏰ Playtime" with lore "&8&oᴘʀᴏɢʀᴇꜱꜱɪᴏɴ" and " " and "&7Time Played: &e%{_playtime}%"
+
+		make gui slot 22 with golden pickaxe named "&e&l⛏ Blocks Mined" with lore "&8&oᴍɪɴɪɴɢ" and "" and "&7Total: &6%formatNumbers({data::blocks_mined::%{_p}%})%" with item flags hide attributes
+		make gui slot 23 with netherite sword named "<color:#82112f>⚔ Kills" with lore "&8&oᴄᴏᴍʙᴀᴛ" and "" and "&7PvP Kills: &c%formatNumbers({data::kills::%{_p}%})%" and "&7PvP Status: %getPvP({_target})%" with item flags hide attributes
+		make gui slot 24 with totem of undying named "<color:#C72F2F>☠ Deaths" with lore "&8&oᴄᴏᴍʙᴀᴛ" and "" and "&7PvP Deaths: &4%formatNumbers({data::deaths::%{_p}%})%" and "&7PvP Status: %getPvP({_target})%" with item flags hide attributes
+
+		make gui slot 35 with barrier named "&cClose":
 			close {_p}'s inventory
 	open gui with id "profile::%{_p}'s uuid%" for {_p}
 
-function createProfileStatsGui(p: player, target: offline player):
+
+
+function getSkillMultiplier(type: text, p: player):: number:
+	set {_skill} to {data::prestige::skill::%{_type}%::%{_p}%}
+	set {_prestigeLevel} to {data::prestige::%{_p}%}
+	set {_multi} to 1 + ({_prestigeLevel} * 0.25) + ({_skill} * 0.15)
+	return {_multi}
+
+function getRawSkill(type: text, p: player):: integer: 
+	return {data::prestige::skill::%{_type}%::%{_p}%}
+
+function formatXP(p: player):: string:
+	set {_exp} to {data::exp::%{_p}%}
+	set {_maxExp} to GetMaxExp({_p})
+	set {_formatted} to GetProgress("percentage", {_exp}, {_maxExp}, 0)
+	return {_formatted}
+
+function getPvP(p: player):: string:
+	if {data::pvp::%{_p}%} is true:
+		return "&aᴇɴᴀʙʟᴇᴅ"
+	else:
+		return "&cᴅɪꜱᴀʙʟᴇᴅ"
+
+function prestigeStats(p: player, target: offline player):
 	set {_targetName} to "%{_target}%"
 	set {_uuid} to {_target}'s uuid
 	loop all players:
@@ -126,46 +129,27 @@ function createProfileStatsGui(p: player, target: offline player):
 	set {_killstreak} to {killstreak::%{_uuid}%} ? 0
 	set {_highestKillstreak} to {highestkillstreak::%{_uuid}%} ? 0
 	set {_playtime} to formatProfilePlaytime({data::playtime::%{_targetName}%} ? time played of {_target})
-	set {_rank} to {data::profile::rank::%{_targetName}%} ? "&7None"
+
 	set {_healthSkill} to {data::prestige::skill::health::%{_targetName}%} ? 0
 	set {_damageSkill} to {data::prestige::skill::damage::%{_targetName}%} ? 0
-	set {_xpSkill} to {data::prestige::skill::xp::%{_targetName}%} ? 0
-	set {_moneySkill} to {data::prestige::skill::money::%{_targetName}%} ? 0
-	if {_healthSkill} > 10:
-		set {_healthSkill} to 10
-	if {_damageSkill} > 10:
-		set {_damageSkill} to 10
-	if {_xpSkill} > 20:
-		set {_xpSkill} to 20
-	if {_moneySkill} > 20:
-		set {_moneySkill} to 20
-	set {_xpMultiplier} to 1 + ({_prestige} * 0.25) + ({_xpSkill} * 0.15)
-	if {_xpMultiplier} > 5:
-		set {_xpMultiplier} to 5
-	set {_moneyMultiplier} to 1 + ({_prestige} * 0.25) + ({_moneySkill} * 0.15)
-	if {_moneyMultiplier} > 5:
-		set {_moneyMultiplier} to 5
+
 	set {_prestigeMultiplierBonus} to {_prestige} * 0.25
 	set {_dropBonus} to {_prestige}
 	if {_dropBonus} > 10:
 		set {_dropBonus} to 10
 	set {_bonusHealth} to {_healthSkill} * 2
 	set {_bonusDamage} to {_damageSkill} * 0.5
-	create a gui with id "profile-stats::%{_p}'s uuid%" with virtual chest inventory with 5 rows named "&d&l%{_target}%'s Perks":
-		loop 45 times:
-			set {_slot} to loop-number - 1
-			make gui slot {_slot} with purple stained glass pane named "&7"
-		make gui slot 10 with skull of {_target} named "&d&l%{_target}%'s Perks" with lore "&8Not repeated stats" and "" and "&7Rank: %{_rank}%" and "&7PvP: &c%{_pvp}%"
-		make gui slot 11 with experience bottle named "&b&lXP Multiplier" with lore "&8Prestige Boost" and "" and "&7Multiplier: &bx%{_xpMultiplier}%" and "&7XP Skill: &f%{_xpSkill}%&8/&f20" and "&7Prestige Bonus: &b+%{_prestigeMultiplierBonus}%x" and "&8Cap: x5"
-		make gui slot 12 with emerald named "&a&lMoney Multiplier" with lore "&8Economy Boost" and "" and "&7Multiplier: &ax%{_moneyMultiplier}%" and "&7Money Skill: &f%{_moneySkill}%&8/&f20" and "&7Prestige Bonus: &a+%{_prestigeMultiplierBonus}%x" and "&8Cap: x5"
-		make gui slot 13 with diamond pickaxe named "&e&lDrop Bonus" with lore "&8Mining Boost" and "" and "&7Extra Drops: &e+%formatNumbers({_dropBonus})%" and "&8Cap: +10"
-		make gui slot 14 with apple named "&c&lHealth Skill" with lore "&8Permanent Skill" and "" and "&7Owned: &f%{_healthSkill}%&8/&f10" and "&7Bonus Health: &c+%{_bonusHealth}%"
-		make gui slot 15 with iron sword named "&6&lDamage Skill" with lore "&8Permanent Skill" and "" and "&7Owned: &f%{_damageSkill}%&8/&f10" and "&7Bonus Damage: &6+%{_bonusDamage}%"
-		make gui slot 16 with amethyst shard named "&d&lTokens" with lore "&8Special Currency" and "" and "&7Tokens: &d%formatNumbers({_tokens})%"
+	create a gui with id "profile-stats::%{_p}'s uuid%" with virtual chest inventory with 3 rows named "<color:#E6DB83>%{_target}%'s Prestige Perks" with shape "xxxxxxxxx" and "xx12345xx" and "xxxxxxxxx":
+		make gui slot "x" with black stained glass pane named "&7"
+
+		make gui slot "1" with experience bottle named "&b&lXP Multiplier" with lore "&8Prestige Boost" and "" and "&7Multiplier: &bx%getMultiplier("xp", %{_target}%)%" and "&7XP Skill: &f%{_xpSkill}%&8/&f20" and "&7Prestige Bonus: &b+%{_prestigeMultiplierBonus}%x" and "&8Cap: x5"
+		make gui slot "2" with emerald named "&a&lMoney Multiplier" with lore "&8Economy Boost" and "" and "&7Multiplier: &ax%getMultiplier("money", %{_target}%)%"" and "&7Money Skill: &f%{_moneySkill}%&8/&f20" and "&7Prestige Bonus: &a+%{_prestigeMultiplierBonus}%x" and "&8Cap: x5"
+		make gui slot "3" with diamond pickaxe named "&e&lDrop Bonus" with lore "&8Mining Boost" and "" and "&7Extra Drops: &e+%formatNumbers({_dropBonus})%" and "&8Cap: +10"
+		make gui slot "4" with apple named "&c&lHealth Skill" with lore "&8Permanent Skill" and "" and "&7Owned: &f%{_healthSkill}%&8/&f10" and "&7Bonus Health: &c+%{_bonusHealth}%"
+		make gui slot "5" with iron sword named "&6&lDamage Skill" with lore "&8Permanent Skill" and "" and "&7Owned: &f%{_damageSkill}%&8/&f10" and "&7Bonus Damage: &6+%{_bonusDamage}%"
 
 		make gui slot 20 with blaze powder named "&c&lKillstreaks" with lore "&8PvP Streaks" and "" and "&7Current: &c%formatNumbers({_killstreak})%" and "&7Highest: &6%formatNumbers({_highestKillstreak})%"
-		make gui slot 21 with shield named "&4&lPvP Status" with lore "&8Combat Toggle" and "" and "&7Enabled: &c%{_pvp}%"
-		make gui slot 22 with clock named "&6&lActivity" with lore "&8Session History" and "" and "&7Playtime: &e%{_playtime}%"
+
 		make gui slot 23 with chest named "&d&lArmor Cache" with lore "&8Profile Display" and "" and "&7Main menu shows current" and "&7or last saved armor."
 		make gui slot 24 with nether star named "&d&lPrestige Skills" with lore "&8Permanent Choices" and "" and "&7Health: &c%{_healthSkill}%" and "&7Damage: &6%{_damageSkill}%" and "&7XP: &b%{_xpSkill}%" and "&7Money: &a%{_moneySkill}%"
 
