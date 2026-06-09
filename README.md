@@ -6,6 +6,7 @@
 Runs on every push and pull request.
 Spins up a Paper server (Minecraft 1.21, Skript 2.12.1, Java 21) and validates the scripts in `./Skript` along with the addons in `./addons`.
 
+<br>
 
 ## Issue Templates
 
