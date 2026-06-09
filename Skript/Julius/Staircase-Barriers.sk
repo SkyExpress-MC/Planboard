@@ -1,0 +1,212 @@
+# Staircase layer barriers
+# Put this file in: /plugins/Skript/scripts/Staircase-Barriers.sk
+
+options:
+    stair-prefix: &8[&aStairs&8] &7
+    max-stair-layers: 4
+    wall-block: barrier
+    wall-width: 5
+    wall-height: 4
+
+function stair_has_key_in_inventory(p: player, required: item) :: boolean:
+    if {_required} is not set:
+        return false
+
+    if inventory of {_p} contains {_required}:
+        return true
+
+    if tool of {_p} is {_required}:
+        return true
+
+    return false
+
+function stair_clear_layer(layer: number):
+    set {_center} to {stairbarrier.center::%{_layer}%}
+    if {_center} is not set:
+        stop
+
+    set {_axis} to {stairbarrier.axis::%{_layer}%}
+    if {_axis} is not set:
+        set {_axis} to "x"
+
+    set {_half} to ({@wall-width} - 1) / 2
+
+    loop {@wall-width} times:
+        set {_xIndex} to loop-number-1
+        set {_offset} to {_xIndex} - {_half} - 1
+        loop {@wall-height} times:
+            set {_yIndex} to loop-number-2
+            set {_yOffset} to {_yIndex} - 1
+            set {_wallBlock} to {_center}
+            add {_yOffset} to y-coordinate of {_wallBlock}
+
+            if {_axis} is "x":
+                add {_offset} to x-coordinate of {_wallBlock}
+            else:
+                add {_offset} to z-coordinate of {_wallBlock}
+
+            set block at {_wallBlock} to air
+
+function stair_build_layer(layer: number):
+    set {_center} to {stairbarrier.center::%{_layer}%}
+    if {_center} is not set:
+        stop
+
+    set {_axis} to {stairbarrier.axis::%{_layer}%}
+    if {_axis} is not set:
+        set {_axis} to "x"
+
+    set block at {_center} to emerald block
+    set {_half} to ({@wall-width} - 1) / 2
+
+    loop {@wall-width} times:
+        set {_xIndex} to loop-number-1
+        set {_offset} to {_xIndex} - {_half} - 1
+        loop {@wall-height} times:
+            set {_yIndex} to loop-number-2
+            set {_yOffset} to {_yIndex} - 1
+            set {_wallBlock} to {_center}
+            add {_yOffset} to y-coordinate of {_wallBlock}
+
+            if {_axis} is "x":
+                add {_offset} to x-coordinate of {_wallBlock}
+            else:
+                add {_offset} to z-coordinate of {_wallBlock}
+
+            if {_wallBlock} is not {_center}:
+                set block at {_wallBlock} to {@wall-block}
+
+command /stairbarrier <text> [<integer>] [<text>]:
+    permission: stairbarrier.admin
+    permission message: {@stair-prefix}&cYou do not have permission to use this.
+    trigger:
+        if arg-1 is "setcenter":
+            if arg-2 is not set:
+                send "{@stair-prefix}&cUsage: /stairbarrier setcenter <1-{@max-stair-layers}>" to player
+                stop
+            if arg-2 < 1:
+                send "{@stair-prefix}&cLayer must be between 1 and {@max-stair-layers}." to player
+                stop
+            if arg-2 > {@max-stair-layers}:
+                send "{@stair-prefix}&cLayer must be between 1 and {@max-stair-layers}." to player
+                stop
+            if target block of player is air:
+                send "{@stair-prefix}&cLook at the middle block for this layer first." to player
+                stop
+            set {stairbarrier.center::%arg-2%} to location of target block of player
+            set block at {stairbarrier.center::%arg-2%} to emerald block
+            send "{@stair-prefix}&aSet layer &f%arg-2% &acenter emerald block." to player
+            stop
+
+        if arg-1 is "reset":
+            if arg-2 is not set:
+                send "{@stair-prefix}&cUsage: /stairbarrier reset <1-{@max-stair-layers}>" to player
+                stop
+            if arg-2 < 1:
+                send "{@stair-prefix}&cLayer must be between 1 and {@max-stair-layers}." to player
+                stop
+            if arg-2 > {@max-stair-layers}:
+                send "{@stair-prefix}&cLayer must be between 1 and {@max-stair-layers}." to player
+                stop
+
+            stair_clear_layer(arg-2)
+            delete {stairbarrier.center::%arg-2%}
+            delete {stairbarrier.dest::%arg-2%}
+            delete {stairbarrier.item::%arg-2%}
+            delete {stairbarrier.axis::%arg-2%}
+            send "{@stair-prefix}&aReset layer &f%arg-2%&a." to player
+            stop
+
+        if arg-1 is "setdest":
+            if arg-2 is not set:
+                send "{@stair-prefix}&cUsage: /stairbarrier setdest <1-{@max-stair-layers}>" to player
+                stop
+            if arg-2 < 1:
+                send "{@stair-prefix}&cLayer must be between 1 and {@max-stair-layers}." to player
+                stop
+            if arg-2 > {@max-stair-layers}:
+                send "{@stair-prefix}&cLayer must be between 1 and {@max-stair-layers}." to player
+                stop
+            set {stairbarrier.dest::%arg-2%} to location of player
+            send "{@stair-prefix}&aSet layer &f%arg-2% &ateleport destination." to player
+            stop
+
+        if arg-1 is "setitem":
+            if arg-2 is not set:
+                send "{@stair-prefix}&cUsage: /stairbarrier setitem <1-{@max-stair-layers}>" to player
+                stop
+            if arg-2 < 1:
+                send "{@stair-prefix}&cLayer must be between 1 and {@max-stair-layers}." to player
+                stop
+            if arg-2 > {@max-stair-layers}:
+                send "{@stair-prefix}&cLayer must be between 1 and {@max-stair-layers}." to player
+                stop
+            if player's tool is air:
+                send "{@stair-prefix}&cHold the required item, then run this command." to player
+                stop
+            set {_item} to player's tool
+            set amount of {_item} to 1
+            set {stairbarrier.item::%arg-2%} to {_item}
+            send "{@stair-prefix}&aSet layer &f%arg-2% &arequired item." to player
+            stop
+
+        if arg-1 is "setaxis":
+            if arg-2 is not set:
+                send "{@stair-prefix}&cUsage: /stairbarrier setaxis <1-{@max-stair-layers}> <x/z>" to player
+                stop
+            if arg-3 is not "x":
+                if arg-3 is not "z":
+                    send "{@stair-prefix}&cAxis must be &fx &cor &fz&c." to player
+                    stop
+            set {stairbarrier.axis::%arg-2%} to arg-3
+            send "{@stair-prefix}&aSet layer &f%arg-2% &awall axis to &f%arg-3%&a." to player
+            stop
+
+        if arg-1 is "build":
+            if arg-2 is set:
+                stair_build_layer(arg-2)
+                send "{@stair-prefix}&aBuilt layer &f%arg-2%&a." to player
+                stop
+            loop {@max-stair-layers} times:
+                stair_build_layer(loop-number)
+            send "{@stair-prefix}&aBuilt all configured staircase barriers." to player
+            stop
+
+        if arg-1 is "info":
+            loop {@max-stair-layers} times:
+                set {_center} to {stairbarrier.center::%loop-number%}
+                set {_dest} to {stairbarrier.dest::%loop-number%}
+                set {_item} to {stairbarrier.item::%loop-number%}
+                set {_axis} to {stairbarrier.axis::%loop-number%}
+                if {_axis} is not set:
+                    set {_axis} to "x"
+                if {_item} is set:
+                    set {_itemStatus} to "set"
+                else:
+                    set {_itemStatus} to "not set"
+                send "{@stair-prefix}&fLayer %loop-number%&7: center=&b%{_center}%&7, dest=&b%{_dest}%&7, item=&b%{_itemStatus}%&7, axis=&b%{_axis}%" to player
+            stop
+
+        send "{@stair-prefix}&fCommands: &b/stairbarrier setcenter <layer>&7, &bsetdest <layer>&7, &bsetitem <layer>&7, &bsetaxis <layer> <x/z>&7, &breset <layer>&7, &bbuild [layer]&7, &binfo" to player
+
+on right click on emerald block:
+    loop {@max-stair-layers} times:
+        if location of clicked block is {stairbarrier.center::%loop-number%}:
+            cancel event
+            set {_required} to {stairbarrier.item::%loop-number%}
+            if {_required} is not set:
+                send "{@stair-prefix}&cThis layer has no required item set." to player
+                stop
+
+            if stair_has_key_in_inventory(player, {_required}) is false:
+                send "{@stair-prefix}&cYou need the required item in your hand or inventory." to player
+                stop
+
+            set {_dest} to {stairbarrier.dest::%loop-number%}
+            if {_dest} is not set:
+                send "{@stair-prefix}&cThis layer has no teleport destination set." to player
+                stop
+
+            teleport player to {_dest}
+            send "{@stair-prefix}&aBarrier passed." to player
+            stop

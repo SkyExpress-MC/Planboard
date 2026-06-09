@@ -1,0 +1,109 @@
+function helpgui_mines(p: player):
+    set {_title} to mini message from "<b><dark_gray>Mines</dark_gray></b> <gray>⪼ <yellow>Help Page"
+    create a gui with id "help_mines::%{_p}%" with virtual chest inventory named {_title} with shape "xxxxxxxxx", "x1234567x" and "xxxxxxxxx":
+        make gui slot "x" with gray stained glass pane named " " with item flags hide additional tooltip
+
+        # ① Overview
+        set {_lore::1} to "&7&oWhat this system does"
+        set {_lore::2} to ""
+        set {_lore::3} to "&7Auto-refilling mines using"
+        set {_lore::4} to "&7WorldGuard regions."
+        set {_lore::5} to ""
+        set {_lore::6} to "&7Every &e%{mineCooldown}%&7 seconds, all"
+        set {_lore::7} to "&7mines refill with their"
+        set {_lore::8} to "&7configured block ratio."
+        set {_lore::9} to ""
+        set {_lore::10} to "&8Players inside are teleported to"
+        set {_lore::11} to "&8spawn before refill — no suffocation."
+        make gui slot "1" with written book named "&6① &6&lOverview" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ② Setup Requirements
+        set {_lore::1} to "&7&oDo these &lbefore&r&7&o running create"
+        set {_lore::2} to ""
+        set {_lore::3} to "&c● &7Select the cuboid with WorldEdit"
+        set {_lore::4} to "&8  &o//wand → click both corners"
+        set {_lore::5} to ""
+        set {_lore::6} to "&c● &7Stand &foutside&7 the selection"
+        set {_lore::7} to "&c● &7Do &fNOT&7 be flying"
+        set {_lore::8} to "&c● &7Your position becomes the"
+        set {_lore::9} to "&7  &fspawn point&7 for player teleports"
+        set {_lore::10} to ""
+        set {_lore::11} to "&4⚠ &cIf you skip these, the mine"
+        set {_lore::12} to "&cwill break or trap players inside."
+        make gui slot "2" with written book named "&6② &6&lSetup Requirements" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ③ Create a Mine
+        set {_lore::1} to "&7&oCommand syntax"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/mine create <name> <block1> <%%1> [block2] [%%2]"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Arguments:"
+        set {_lore::6} to "  &e<name>   &8- &7Mine identifier"
+        set {_lore::7} to "  &e<block1> &8- &7Primary block type"
+        set {_lore::8} to "  &e<%%1>      &8- &7Spawn chance 1-100"
+        set {_lore::9} to "  &e[block2]  &8- &7Secondary block &8(optional)"
+        set {_lore::10} to "  &e[%%2]      &8- &7Its chance &8(optional)"
+        set {_lore::11} to ""
+        set {_lore::12} to "&4⚠ &cPercentages &lmust&r&c total &f100"
+        set {_lore::13} to "&8One block alone = 100%% automatically."
+        make gui slot "3" with written book named "&6③ &6&lCreate a Mine" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ④ Example
+        set {_lore::1} to "&7&oA working create command"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/mine create iron stone 70 iron_ore 30"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Creates a mine named &firon&7,"
+        set {_lore::6} to "&7filled with &f70%% stone&7 and"
+        set {_lore::7} to "&f30%% iron ore&7 on each refill."
+        make gui slot "4" with written book named "&6④ &6&lExample" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑤ Manage Mines
+        set {_lore::1} to "&7&oRedefine, delete, reset"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/mine redefine <name>"
+        set {_lore::4} to "&8  Reshape an existing mine"
+        set {_lore::5} to "&8  &o(re-select with WorldEdit first)"
+        set {_lore::6} to ""
+        set {_lore::7} to "&e/mine delete <name>"
+        set {_lore::8} to "&8  Delete a single mine"
+        set {_lore::9} to ""
+        set {_lore::10} to "&e/mine resetall"
+        set {_lore::11} to "&4⚠ &cWipes &lALL&r&c mines. No undo."
+        make gui slot "5" with written book named "&6⑤ &6&lManage Mines" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑥ Refill Timer
+        set {_lore::1} to "&7&oControl the refill interval"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/mine changetimer <seconds>"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Sets how often mines refill."
+        set {_lore::6} to ""
+        set {_lore::7} to "&7Current: &e%{mineCooldown}% seconds"
+        set {_lore::8} to ""
+        set {_lore::9} to "&c● &7Minimum is &f1&7 second"
+        set {_lore::10} to "&c● &7Lower values = &fmore lag"
+        make gui slot "6" with written book named "&6⑥ &6&lRefill Timer" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑦ Mine Browser
+        set {_lore::1} to "&7&oVisual list of all mines"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/mine gui"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Opens a chest interface showing"
+        set {_lore::6} to "&7every registered mine."
+        set {_lore::7} to ""
+        set {_lore::8} to "&7Each item shows:"
+        set {_lore::9} to "  &8• &7Region name"
+        set {_lore::10} to "  &8• &7Block types & ratios"
+        set {_lore::11} to "  &8• &7Mine ID"
+        make gui slot "7" with written book named "&6⑦ &6&lMine Browser" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+    open gui with id "help_mines::%{_p}%" for {_p}

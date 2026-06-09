@@ -1,0 +1,363 @@
+
+options:
+    prestige-prefix: &8[&d&lPrestige&8] &7
+    prestige-menu-name: &dPrestige
+    prestige-skill-name: &dPrestige &7- &3Permanent Skill
+    currency-symbol: $
+    health-per-skill: 2
+    damage-per-skill: 0.5
+    xp-skill-multiplier: 0.15
+    money-skill-multiplier: 0.15
+    max-health-skill: 10
+    max-damage-skill: 10
+    max-xp-skill: 20
+    max-money-skill: 20
+    max-xp-multiplier: 5
+    max-money-multiplier: 5
+    max-drop-bonus: 10
+
+function prestige_init(p: player):
+    if {data::prestige::skill::health::%{_p}%} is not set:
+        set {data::prestige::skill::health::%{_p}%} to 0
+    if {data::prestige::skill::damage::%{_p}%} is not set:
+        set {data::prestige::skill::damage::%{_p}%} to 0
+    if {data::prestige::skill::xp::%{_p}%} is not set:
+        set {data::prestige::skill::xp::%{_p}%} to 0
+    if {data::prestige::skill::money::%{_p}%} is not set:
+        set {data::prestige::skill::money::%{_p}%} to 0
+
+function prestige_count(p: player) :: number:
+    prestige_init({_p})
+    return {data::prestige::%{_p}%}
+
+function prestige_cost(p: player) :: number:
+    set {_prestige} to prestige_count({_p})
+    if {_prestige} <= 0:
+        return 50
+    return 50 + ({_prestige} * 50)
+
+function prestige_xp_multiplier(p: player) :: number:
+    prestige_init({_p})
+    set {_prestige} to {data::prestige::%{_p}%}
+    set {_skill} to {data::prestige::skill::xp::%{_p}%}
+    if {_skill} > {@max-xp-skill}:
+        set {_skill} to {@max-xp-skill}
+    set {_multiplier} to 1 + ({_prestige} * 0.25) + ({_skill} * {@xp-skill-multiplier})
+    if {_multiplier} > {@max-xp-multiplier}:
+        return {@max-xp-multiplier}
+    return {_multiplier}
+
+function prestige_money_multiplier(p: player) :: number:
+    prestige_init({_p})
+    set {_prestige} to {data::prestige::%{_p}%}
+    set {_skill} to {data::prestige::skill::money::%{_p}%}
+    if {_skill} > {@max-money-skill}:
+        set {_skill} to {@max-money-skill}
+    set {_multiplier} to 1 + ({_prestige} * 0.25) + ({_skill} * {@money-skill-multiplier})
+    if {_multiplier} > {@max-money-multiplier}:
+        return {@max-money-multiplier}
+    return {_multiplier}
+
+function prestige_drop_bonus(p: player) :: number:
+    set {_bonus} to prestige_count({_p})
+    if {_bonus} > {@max-drop-bonus}:
+        return {@max-drop-bonus}
+    return {_bonus}
+
+function prestige_apply_effects(p: player):
+    prestige_init({_p})
+    set {_prestige} to {data::prestige::%{_p}%}
+    set {_healthSkill} to {data::prestige::skill::health::%{_p}%}
+    if {_healthSkill} > {@max-health-skill}:
+        set {_healthSkill} to {@max-health-skill}
+    set {_maxHealth} to 10 + ({_healthSkill} * {@health-per-skill})
+    if max health of {_p} is not {_maxHealth}:
+        set max health of {_p} to {_maxHealth}
+    if health of {_p} > {_maxHealth}:
+        set health of {_p} to {_maxHealth}
+
+function prestige_reset_skills(target: offline player):
+    set {data::prestige::skill::health::%{_target}%} to 0
+    set {data::prestige::skill::damage::%{_target}%} to 0
+    set {data::prestige::skill::xp::%{_target}%} to 0
+    set {data::prestige::skill::money::%{_target}%} to 0
+    delete {data::prestige::needs-skill::%{_target}%}
+    delete {data::prestige::menu::%{_target}%}
+
+function prestige_reset_player_skills(p: player):
+    set {data::prestige::skill::health::%{_p}%} to 0
+    set {data::prestige::skill::damage::%{_p}%} to 0
+    set {data::prestige::skill::xp::%{_p}%} to 0
+    set {data::prestige::skill::money::%{_p}%} to 0
+    delete {data::prestige::needs-skill::%{_p}%}
+    delete {data::prestige::menu::%{_p}%}
+
+function prestige_reset_all(target: offline player):
+    set {data::prestige::%{_target}%} to 0
+    prestige_reset_skills({_target})
+
+function prestige_info_item(p: player) :: item:
+    set {_cost} to prestige_cost({_p})
+    set {_level} to {data::level::%{_p}%}
+    if {_level} is not set:
+        set {_level} to 0
+    set {_prestige} to prestige_count({_p})
+    set {_next} to {_prestige} + 1
+    if {_level} >= {_cost}:
+        return totem of undying named "&d&lPrestige %{_next}%" with lore "&8Permanent Rebirth" and "" and "&7Cost: &d%{_cost}% Levels" and "&7Your Levels: &a%{_level}%" and "" and "&fPrestige Rewards:" and "&a+1 block drop bonus &8(cap {@max-drop-bonus})" and "&a+0.25x XP multiplier &8(cap {@max-xp-multiplier}x)" and "&a+0.25x money multiplier &8(cap {@max-money-multiplier}x)" and "" and "&fAfter prestiging:" and "&7Choose &fone &7permanent skill." and "" and "&eClick to prestige."
+    set {_missing} to {_cost} - {_level}
+    return barrier named "&c&lNot Enough Levels" with lore "&8Permanent Rebirth" and "" and "&7Cost: &d%{_cost}% Levels" and "&7Your Levels: &c%{_level}%" and "&7Missing: &c%{_missing}% levels" and "" and "&cYou cannot prestige yet."
+
+function prestige_open_menu(p: player):
+    prestige_init({_p})
+    set {_healthSkill} to {data::prestige::skill::health::%{_p}%}
+    set {_damageSkill} to {data::prestige::skill::damage::%{_p}%}
+    set {_xpSkill} to {data::prestige::skill::xp::%{_p}%}
+    set {_moneySkill} to {data::prestige::skill::money::%{_p}%}
+    set {_gui} to a dropper inventory named "{@prestige-menu-name}"
+    loop 9 times:
+        set slot loop-number - 1 of {_gui} to black stained glass pane named " "
+    set slot 0 of {_gui} to amethyst shard named "&dYour Prestige" with lore "&7Current: &d%prestige_count({_p})%" and "&7Next Cost: &f%prestige_cost({_p})% Levels"
+    set slot 2 of {_gui} to experience bottle named "&aMultipliers" with lore "&7XP: &ax%prestige_xp_multiplier({_p})% &8(cap {@max-xp-multiplier}x)" and "&7Money: &ax%prestige_money_multiplier({_p})% &8(cap {@max-money-multiplier}x)" and "" and "&7Prestige and skill choices" and "&7increase these multipliers."
+    set slot 4 of {_gui} to prestige_info_item({_p})
+    set slot 6 of {_gui} to diamond pickaxe named "&bBlock Drop Bonus" with lore "&7Extra block drops: &a+%prestige_drop_bonus({_p})% &8(cap {@max-drop-bonus})" and "" and "&7Prestige increases this" and "&7bonus by &f+1&7 each time."
+    set slot 8 of {_gui} to nether star named "&dPermanent Skills" with lore "&7Health: &f%{_healthSkill}%" and "&7Damage: &f%{_damageSkill}%" and "&7XP: &f%{_xpSkill}%" and "&7Money: &f%{_moneySkill}%"
+    set {data::prestige::menu::%{_p}%} to "prestige"
+    open {_gui} to {_p}
+
+function prestige_open_skill_menu(p: player):
+    prestige_init({_p})
+    set {_healthSkill} to {data::prestige::skill::health::%{_p}%}
+    set {_damageSkill} to {data::prestige::skill::damage::%{_p}%}
+    set {_xpSkill} to {data::prestige::skill::xp::%{_p}%}
+    set {_moneySkill} to {data::prestige::skill::money::%{_p}%}
+    set {_gui} to a dropper inventory named "{@prestige-skill-name}"
+    loop 9 times:
+        set slot loop-number - 1 of {_gui} to gray stained glass pane named " "
+    set slot 0 of {_gui} to red stained glass pane named " "
+    set slot 2 of {_gui} to red stained glass pane named " "
+    set slot 4 of {_gui} to nether star named "&d&lChoose One Skill" with lore "&7You get &fone &7choice for this prestige." and "&7The pick stacks and cannot be undone." and "" and "&cYou cannot close this menu" and "&cuntil you pick a skill."
+    set slot 6 of {_gui} to red stained glass pane named " "
+    set slot 8 of {_gui} to red stained glass pane named " "
+    set slot 1 of {_gui} to apple named "&c&lHealth" with lore "&7Owned: &f%{_healthSkill}%&8/&f{@max-health-skill}" and "" and "&a+{@health-per-skill} max health" and "&7Best for surviving PvP and bosses." and "" and "&eClick to choose Health."
+    set slot 3 of {_gui} to iron sword named "&6&lDamage" with lore "&7Owned: &f%{_damageSkill}%&8/&f{@max-damage-skill}" and "" and "&a+{@damage-per-skill} melee damage" and "&7Best for PvP and mob grinding." and "" and "&eClick to choose Damage."
+    set slot 5 of {_gui} to experience bottle named "&a&lXP" with lore "&7Owned: &f%{_xpSkill}%&8/&f{@max-xp-skill}" and "" and "&a+{@xp-skill-multiplier}x XP value" and "&7Stacks with prestige XP value." and "&7Total XP multiplier cap: &f{@max-xp-multiplier}x" and "" and "&eClick to choose XP."
+    set slot 7 of {_gui} to emerald named "&2&lMoney" with lore "&7Owned: &f%{_moneySkill}%&8/&f{@max-money-skill}" and "" and "&a+{@money-skill-multiplier}x money value" and "&7Stacks with prestige money value." and "&7Total money multiplier cap: &f{@max-money-multiplier}x" and "" and "&eClick to choose Money."
+    set {data::prestige::menu::%{_p}%} to "skill"
+    open {_gui} to {_p}
+
+function prestige_do(p: player):
+    prestige_init({_p})
+    set {_cost} to prestige_cost({_p})
+    if {data::level::%{_p}%} < {_cost}:
+        send "{@prestige-prefix}&cYou need &f%{_cost}% XP Levels &cto prestige." to {_p}
+        play sound "block.note_block.bass" with volume 1 and pitch 0.6 to {_p}
+        stop
+    set {data::level::%{_p}%} to 1
+    set {data::exp::%{_p}%} to 0
+    set {_p}'s level to 1
+    add 1 to {data::prestige::%{_p}%}
+    set {data::prestige::needs-skill::%{_p}%} to true
+    prestige_apply_effects({_p})
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 to {_p}
+    play sound "entity.totem.use" with volume 0.8 and pitch 1 to {_p}
+    send "{@prestige-prefix}&d&lPRESTIGE! &7You are now Prestige &d%{data::prestige::%{_p}%}%&7." to {_p}
+    send "{@prestige-prefix}&aYour prestige values increased. Choose one permanent skill." to {_p}
+    wait 2 ticks
+    prestige_open_skill_menu({_p})
+
+function prestige_choose_skill(p: player, skill: text):
+    if {data::prestige::needs-skill::%{_p}%} is not set:
+        send "{@prestige-prefix}&cYou do not have a pending skill choice." to {_p}
+        stop
+    if {_skill} is "health":
+        if {data::prestige::skill::health::%{_p}%} >= {@max-health-skill}:
+            send "{@prestige-prefix}&cHealth is already capped at &f{@max-health-skill}&c. Choose another skill." to {_p}
+            stop
+    else if {_skill} is "damage":
+        if {data::prestige::skill::damage::%{_p}%} >= {@max-damage-skill}:
+            send "{@prestige-prefix}&cDamage is already capped at &f{@max-damage-skill}&c. Choose another skill." to {_p}
+            stop
+    else if {_skill} is "xp":
+        if {data::prestige::skill::xp::%{_p}%} >= {@max-xp-skill}:
+            send "{@prestige-prefix}&cXP is already capped at &f{@max-xp-skill}&c. Choose another skill." to {_p}
+            stop
+    else if {_skill} is "money":
+        if {data::prestige::skill::money::%{_p}%} >= {@max-money-skill}:
+            send "{@prestige-prefix}&cMoney is already capped at &f{@max-money-skill}&c. Choose another skill." to {_p}
+            stop
+    add 1 to {data::prestige::skill::%{_skill}%::%{_p}%}
+    delete {data::prestige::needs-skill::%{_p}%}
+    prestige_apply_effects({_p})
+    close {_p}'s inventory
+    play sound "entity.player.levelup" with volume 1 and pitch 1.2 to {_p}
+    if {_skill} is "health":
+        send "{@prestige-prefix}&aYou permanently chose &cHealth&a." to {_p}
+    else if {_skill} is "damage":
+        send "{@prestige-prefix}&aYou permanently chose &6Damage&a." to {_p}
+    else if {_skill} is "xp":
+        send "{@prestige-prefix}&aYou permanently chose &bXP&a." to {_p}
+    else if {_skill} is "money":
+        send "{@prestige-prefix}&aYou permanently chose &2Money&a." to {_p}
+
+command /prestige [<type>] [<player>] [<number>]:
+    aliases: /prestiges, /pres
+    trigger:
+        if arg-1 is "reset":
+            if player does not have permission "skyexpress.prestige.admin":
+                send "{@prestige-prefix}&cYou do not have permission to use this." to player
+                stop
+            if arg-2 is not set:
+                send "{@prestige-prefix}&cUsage: /prestige reset <player>" to player
+                stop
+            prestige_reset_all(arg-2)
+            loop all players:
+                if "%loop-player%" is "%arg-2%":
+                    set {data::prestige::%loop-player%} to 0
+                    prestige_reset_player_skills(loop-player)
+                    prestige_apply_effects(loop-player)
+            send "{@prestige-prefix}&aReset prestige and skills for &f%arg-2%&a." to player
+            stop
+
+        if arg-1 is set:
+            send "{@prestige-prefix}&cUsage: /prestige &7or &c/prestige add/set/reset <player> [amount]" to player
+            stop
+        prestige_open_menu(player)
+
+command /prestigeinfo [<offline player>]:
+    permission: skyexpress.prestige.info
+    permission message: {@prestige-prefix}&cYou do not have permission to use this.
+    trigger:
+        if arg-1 is set:
+            set {_target} to arg-1
+        else:
+            set {_target} to player
+        set {_prestige} to {data::prestige::%{_target}%}
+        set {_healthSkill} to {data::prestige::skill::health::%{_target}%}
+        set {_damageSkill} to {data::prestige::skill::damage::%{_target}%}
+        set {_xpSkill} to {data::prestige::skill::xp::%{_target}%}
+        set {_moneySkill} to {data::prestige::skill::money::%{_target}%}
+        loop all players:
+            if "%loop-player%" is "%{_target}%":
+                set {_prestige} to {data::prestige::%loop-player%}
+                set {_healthSkill} to {data::prestige::skill::health::%loop-player%}
+                set {_damageSkill} to {data::prestige::skill::damage::%loop-player%}
+                set {_xpSkill} to {data::prestige::skill::xp::%loop-player%}
+                set {_moneySkill} to {data::prestige::skill::money::%loop-player%}
+        if {_prestige} is not set:
+            set {_prestige} to 0
+        if {_healthSkill} is not set:
+            set {_healthSkill} to 0
+        if {_damageSkill} is not set:
+            set {_damageSkill} to 0
+        if {_xpSkill} is not set:
+            set {_xpSkill} to 0
+        if {_moneySkill} is not set:
+            set {_moneySkill} to 0
+        send "{@prestige-prefix}&f%{_target}% &7Prestige: &d%{_prestige}%" to player
+        send "{@prestige-prefix}&7Health: &f%{_healthSkill}% &8| &7Damage: &f%{_damageSkill}% &8| &7XP: &f%{_xpSkill}% &8| &7Money: &f%{_moneySkill}%" to player
+
+command /prestigeadmin <text> <offline player> [<number>]:
+    permission: skyexpress.prestige.admin
+    permission message: {@prestige-prefix}&cYou do not have permission to use this.
+    trigger:
+        if arg-1 is "addlevels":
+            if arg-3 is not set:
+                send "{@prestige-prefix}&cUsage: /prestigeadmin addlevels <player> <amount>" to player
+                stop
+            if arg-3 <= 0:
+                send "{@prestige-prefix}&cAmount must be more than 0." to player
+                stop
+            if {data::level::%arg-2%} is not set:
+                set {data::level::%arg-2%} to 0
+            add arg-3 to {data::level::%arg-2%}
+            set {data::exp::%arg-2%} to 0
+            loop all players:
+                if "%loop-player%" is "%arg-2%":
+                    set {data::level::%loop-player%} to {data::level::%arg-2%}
+                    set {data::exp::%loop-player%} to 0
+                    set loop-player's level to {data::level::%arg-2%}
+            send "{@prestige-prefix}&aAdded &f%arg-3% &aXP Levels to &f%arg-2%&a. New level: &f%{data::level::%arg-2%}%&a." to player
+            stop
+
+        if arg-1 is "setlevels":
+            if arg-3 is not set:
+                send "{@prestige-prefix}&cUsage: /prestigeadmin setlevels <player> <amount>" to player
+                stop
+            if arg-3 < 0:
+                send "{@prestige-prefix}&cAmount cannot be below 0." to player
+                stop
+            set {data::level::%arg-2%} to arg-3
+            set {data::exp::%arg-2%} to 0
+            loop all players:
+                if "%loop-player%" is "%arg-2%":
+                    set {data::level::%loop-player%} to arg-3
+                    set {data::exp::%loop-player%} to 0
+                    set loop-player's level to {data::level::%arg-2%}
+            send "{@prestige-prefix}&aSet &f%arg-2%'s &aXP Levels to &f%arg-3%&a." to player
+            stop
+
+        send "{@prestige-prefix}&cUsage: /prestigeadmin addlevels <player> <amount> &7or &c/prestigeadmin setlevels <player> <amount>" to player
+
+on join:
+    prestige_init(player)
+    set player's level to {data::level::%player%}
+    prestige_apply_effects(player)
+    if {data::prestige::needs-skill::%player%} is set:
+        wait 10 ticks
+        prestige_open_skill_menu(player)
+
+on damage:
+    if attacker is a player:
+        prestige_init(attacker)
+        set {_damageSkill} to {data::prestige::skill::damage::%attacker%}
+        if {_damageSkill} > {@max-damage-skill}:
+            set {_damageSkill} to {@max-damage-skill}
+        set {_bonus} to {_damageSkill} * {@damage-per-skill}
+        if {_bonus} > 0:
+            set {_damage} to damage
+            add {_bonus} to {_damage}
+            set damage to {_damage}
+
+on inventory click:
+    if {data::prestige::menu::%player%} is not set:
+        stop
+    set {_rawSlot} to raw index of event-slot
+    if {_rawSlot} < 0:
+        stop
+    if {_rawSlot} > 8:
+        cancel event
+        stop
+    cancel event
+    if {data::prestige::menu::%player%} is "prestige":
+        if {_rawSlot} is 4:
+            close player's inventory
+            prestige_do(player)
+            stop
+    if {data::prestige::menu::%player%} is "skill":
+        if {_rawSlot} is 1:
+            prestige_choose_skill(player, "health")
+            stop
+        if {_rawSlot} is 3:
+            prestige_choose_skill(player, "damage")
+            stop
+        if {_rawSlot} is 5:
+            prestige_choose_skill(player, "xp")
+            stop
+        if {_rawSlot} is 7:
+            prestige_choose_skill(player, "money")
+            stop
+
+on inventory drag:
+    if {data::prestige::menu::%player%} is set:
+        cancel event
+
+on inventory close:
+    if {data::prestige::menu::%player%} is set:
+        delete {data::prestige::menu::%player%}
+        if {data::prestige::needs-skill::%player%} is set:
+            wait 2 ticks
+            prestige_open_skill_menu(player)
+
+on quit:
+    delete {data::prestige::menu::%player%}

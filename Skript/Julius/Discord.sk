@@ -1,0 +1,3 @@
+command /discord:
+    trigger:
+        send "&8[&9Discord&8] &7&fJoin our Discord: &bhttps://discord.gg/E5cHVkuv5R" to player

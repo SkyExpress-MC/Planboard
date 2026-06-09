@@ -1,0 +1,65 @@
+# SkyExpress Tokens
+# Digital token currency used by special systems like the Black Market.
+
+options:
+    tokens-prefix: &8[&5&lTokens&8] &7
+    tokens-name: Tokens
+
+function meteor_core_tokens_item() :: item:
+    set {_item} to nether star named "<gradient:#FFB347:#FF3D00>&lMeteor Core</gradient>" with lore "&8Ancient cosmic fragment" and "" and "&7A burning shard pulled from" and "&7the heart of a fallen meteor." and "" and "&6&lRIGHT CLICK &fto claim tokens" and "&8Chances:" and "&e500 Tokens &8- &745%%" and "&e1,000 Tokens &8- &725%%" and "&e2,000 Tokens &8- &715%%" and "&65,000 Tokens &8- &710%%" and "&610,000 Tokens &8- &74%%" and "&615,000 Tokens &8- &71%%"
+    return {_item}
+
+on load:
+    set {var::meteor_core} to meteor_core_tokens_item()
+
+function meteor_is_core_item(i: item) :: boolean:
+    set {_check} to {_i}
+    set amount of {_check} to 1
+    if {_check} is meteor_core_tokens_item():
+        return true
+    return false
+
+function meteor_core_give_tokens(p: player):
+    set {_roll} to random integer between 1 and 100
+    if {_roll} <= 45:
+        set {_reward} to 500
+    else if {_roll} <= 70:
+        set {_reward} to 1000
+    else if {_roll} <= 85:
+        set {_reward} to 2000
+    else if {_roll} <= 95:
+        set {_reward} to 5000
+    else if {_roll} <= 99:
+        set {_reward} to 10000
+    else:
+        set {_reward} to 15000
+    if {data::tokens::%uuid of {_p}%} is not set:
+        set {data::tokens::%uuid of {_p}%} to 0
+    add {_reward} to {data::tokens::%uuid of {_p}%}
+    set {_formattedReward} to formatNumbers({_reward})
+    send "{@tokens-prefix}&aYou claimed a Meteor Core and received &d%{_formattedReward}% {@tokens-name}&a." to {_p}
+
+on right click:
+    if meteor_is_core_item(player's tool) is true:
+        cancel event
+        set {_held} to player's tool
+        set amount of {_held} to 1
+        remove {_held} from player's inventory
+        meteor_core_give_tokens(player)
+
+command /tokens [<offline player>]:
+    aliases: /token
+    usage: /tokens [player]
+    trigger:
+        if arg-1 is set:
+            if player does not have permission "skyexpress.tokens.admin":
+                send "{@tokens-prefix}&cYou do not have permission to view other players' tokens." to player
+                stop
+            set {_target} to arg-1
+        else:
+            set {_target} to player
+
+        if {data::tokens::%uuid of {_target}%} is not set:
+            set {data::tokens::%uuid of {_target}%} to 0
+        set {_formattedTokens} to formatNumbers({data::tokens::%uuid of {_target}%})
+        send "{@tokens-prefix}&f%{_target}% &7has &d%{_formattedTokens}% {@tokens-name}&7." to player

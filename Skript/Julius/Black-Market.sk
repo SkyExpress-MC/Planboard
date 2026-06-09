@@ -1,0 +1,467 @@
+options:
+    blackmarket-prefix: &8[&5&lBlack Market&8] &7
+    blackmarket-duration-minutes: 15
+    blackmarket-currency-name: Tokens
+
+function blackmarket_tokens_add(p: player, amount: number):
+    if {data::tokens::%uuid of {_p}%} is not set:
+        set {data::tokens::%uuid of {_p}%} to 0
+    add {_amount} to {data::tokens::%uuid of {_p}%}
+
+function blackmarket_place_stand_block(l: location, b: itemtype):
+    if block at {_l} is air:
+        add {_l} to {blackmarket.stand-blocks::*}
+        set block at {_l} to {_b}
+
+function blackmarket_stand_location(base: location, forward: number, side: number, up: number) :: location:
+    set {_l} to {_base}
+    add {_up} to y-coordinate of {_l}
+    set {_yaw} to yaw of {_base}
+    while {_yaw} > 180:
+        remove 360 from {_yaw}
+    while {_yaw} <= -180:
+        add 360 to {_yaw}
+
+    if {_yaw} >= -45:
+        if {_yaw} < 45:
+            add {_side} to x-coordinate of {_l}
+            add {_forward} to z-coordinate of {_l}
+            return {_l}
+
+    if {_yaw} >= 45:
+        if {_yaw} < 135:
+            remove {_forward} from x-coordinate of {_l}
+            add {_side} to z-coordinate of {_l}
+            return {_l}
+
+    if {_yaw} >= -135:
+        if {_yaw} < -45:
+            add {_forward} to x-coordinate of {_l}
+            remove {_side} from z-coordinate of {_l}
+            return {_l}
+
+    remove {_side} from x-coordinate of {_l}
+    remove {_forward} from z-coordinate of {_l}
+    return {_l}
+
+function blackmarket_clear_stand():
+    loop {blackmarket.stand-blocks::*}:
+        if block at loop-value is purple carpet:
+            set block at loop-value to air
+            wait 2 ticks
+        if block at loop-value is black carpet or polished blackstone slab or dark oak fence:
+            set block at loop-value to air
+            delete {blackmarket.stand-blocks::*}
+            kill dropped items
+
+function blackmarket_build_stand(base: location):
+    blackmarket_clear_stand()
+
+    set {_front} to blackmarket_stand_location({_base}, 1, 0, 0)
+    blackmarket_place_stand_block({_front}, polished blackstone slab)
+
+    set {_frontLeft} to blackmarket_stand_location({_base}, 1, -1, 0)
+    blackmarket_place_stand_block({_frontLeft}, purple carpet)
+
+    set {_frontRight} to blackmarket_stand_location({_base}, 1, 1, 0)
+    blackmarket_place_stand_block({_frontRight}, purple carpet)
+
+    set {_left} to blackmarket_stand_location({_base}, 0, -1, 0)
+    blackmarket_place_stand_block({_left}, dark oak fence)
+
+    set {_right} to blackmarket_stand_location({_base}, 0, 1, 0)
+    blackmarket_place_stand_block({_right}, dark oak fence)
+
+    set {_leftTop} to blackmarket_stand_location({_base}, 0, -1, 1)
+    blackmarket_place_stand_block({_leftTop}, purple carpet)
+
+    set {_rightTop} to blackmarket_stand_location({_base}, 0, 1, 1)
+    blackmarket_place_stand_block({_rightTop}, purple carpet)
+
+    set {_backLeft} to blackmarket_stand_location({_base}, -1, -1, 0)
+    blackmarket_place_stand_block({_backLeft}, black carpet)
+
+    set {_backMiddle} to blackmarket_stand_location({_base}, -1, 0, 0)
+    blackmarket_place_stand_block({_backMiddle}, purple carpet)
+
+    set {_backRight} to blackmarket_stand_location({_base}, -1, 1, 0)
+    blackmarket_place_stand_block({_backRight}, black carpet)
+
+function blackmarket_format_item(i: item) :: text:
+    if name of {_i} is set:
+        return name of {_i}
+    return "%type of {_i}%"
+
+function blackmarket_clear_npc():
+    blackmarket_clear_stand()
+
+    if {blackmarket.npc-uuid} is not set:
+        stop
+
+    loop all entities:
+        if uuid of loop-entity is {blackmarket.npc-uuid}:
+            kill loop-entity
+    delete {blackmarket.npc-uuid}
+    delete {blackmarket.npc-location}
+
+function blackmarket_spawn_npc():
+    blackmarket_clear_npc()
+
+    delete {_worlds::*}
+    loop {blackmarket.spawn-worlds::*}:
+        if size of {blackmarket.spawn::%loop-index%::*} >= 2:
+            add loop-index to {_worlds::*}
+
+    if size of {_worlds::*} < 1:
+        stop
+
+    set {_worldName} to random element out of {_worlds::*}
+    set {_spot} to random element out of {blackmarket.spawn::%{_worldName}%::*}
+    if {_spot} is not set:
+        stop
+
+    set pitch of {_spot} to 0
+
+    spawn villager at {_spot}
+    set {_npc} to last spawned entity
+    set name of {_npc} to "<gradient:#9B35FF:#120018>&lBlack Market Buyer</gradient>"
+    set ai of {_npc} to false
+    blackmarket_build_stand({_spot})
+    set {blackmarket.npc-uuid} to uuid of {_npc}
+    set {blackmarket.npc-location} to location of {_npc}
+
+function blackmarket_list_spawns(p: player):
+    send "&8&m----------&r <gradient:#B967FF:#120018>&lBlack Market Spawns</gradient> &8&m----------" to {_p}
+    if size of {blackmarket.spawn-worlds::*} < 1:
+        send "{@blackmarket-prefix}&7No spawn points are configured yet." to {_p}
+        stop
+
+    loop {blackmarket.spawn-worlds::*}:
+        set {_worldName} to loop-index
+        set {_count} to size of {blackmarket.spawn::%{_worldName}%::*}
+        send "{@blackmarket-prefix}&f%{_worldName}% &7- &a%{_count}%&7/2 spots" to {_p}
+        loop {blackmarket.spawn::%{_worldName}%::*}:
+            set {_loc} to loop-value-2
+            send "{@blackmarket-prefix}&8- &f%{_loc}%" to {_p}
+
+function blackmarket_set_deal(id: number):
+    set {blackmarket.deal} to {_id}
+
+    if {_id} is 1:
+        set {blackmarket.item} to diamond
+        set {blackmarket.price} to 4
+        set {blackmarket.stock-left} to 128
+        set {blackmarket.request} to "Diamonds"
+    else if {_id} is 2:
+        set {blackmarket.item} to emerald
+        set {blackmarket.price} to 5
+        set {blackmarket.stock-left} to 96
+        set {blackmarket.request} to "Emeralds"
+    else if {_id} is 3:
+        set {blackmarket.item} to netherite scrap
+        set {blackmarket.price} to 35
+        set {blackmarket.stock-left} to 32
+        set {blackmarket.request} to "Netherite Scrap"
+    else if {_id} is 4:
+        set {blackmarket.item} to enchanted golden apple
+        set {blackmarket.price} to 100
+        set {blackmarket.stock-left} to 8
+        set {blackmarket.request} to "Enchanted Golden Apples"
+    else if {_id} is 5:
+        if {var::ore_fragment} is not set:
+            blackmarket_set_deal(random integer between 1 and 4)
+            stop
+        set {blackmarket.item} to {var::ore_fragment}
+        set {blackmarket.price} to 75
+        set {blackmarket.stock-left} to 18
+        set {blackmarket.request} to "Ore Fragments"
+    else if {_id} is 6:
+        if {var::plate_shard} is not set:
+            blackmarket_set_deal(random integer between 1 and 4)
+            stop
+        set {blackmarket.item} to {var::plate_shard}
+        set {blackmarket.price} to 60
+        set {blackmarket.stock-left} to 24
+        set {blackmarket.request} to "Plate Shards"
+    else if {_id} is 7:
+        if {var::compressed::emerald} is not set:
+            blackmarket_set_deal(random integer between 1 and 4)
+            stop
+        set {blackmarket.item} to {var::compressed::emerald}
+        set {blackmarket.price} to 250
+        set {blackmarket.stock-left} to 10
+        set {blackmarket.request} to "Compressed Emeralds"
+    else:
+        if {var::compressed::diamond} is not set:
+            blackmarket_set_deal(random integer between 1 and 4)
+            stop
+        set {blackmarket.item} to {var::compressed::diamond}
+        set {blackmarket.price} to 220
+        set {blackmarket.stock-left} to 10
+        set {blackmarket.request} to "Compressed Diamonds"
+
+    set amount of {blackmarket.item} to 1
+
+function blackmarket_end(reason: text):
+    if {blackmarket.active} is not set:
+        stop
+
+    blackmarket_clear_npc()
+
+    delete {blackmarket.active}
+    delete {blackmarket.active-minutes}
+    delete {blackmarket.item}
+    delete {blackmarket.price}
+    delete {blackmarket.stock-left}
+    delete {blackmarket.request}
+    delete {blackmarket.deal}
+    delete {blackmarket.sold::*}
+
+    if {_reason} is set:
+        broadcast "{@blackmarket-prefix}%{_reason}%"
+
+function blackmarket_start():
+    if {blackmarket.active} is set:
+        stop
+
+    delete {_worlds::*}
+    loop {blackmarket.spawn-worlds::*}:
+        if size of {blackmarket.spawn::%loop-index%::*} >= 2:
+            add loop-index to {_worlds::*}
+
+    if size of {_worlds::*} < 1:
+        broadcast "{@blackmarket-prefix}&cNo Black Market spawn points are configured. Add 2 spots in at least one dimension first."
+        stop
+
+    set {blackmarket.active} to true
+    set {blackmarket.active-minutes} to {@blackmarket-duration-minutes}
+    set {blackmarket.next-start-minutes} to random integer between 300 and 360
+    blackmarket_set_deal(random integer between 1 and 8)
+    blackmarket_spawn_npc()
+
+    set {_itemName} to blackmarket_format_item({blackmarket.item})
+    set {_priceText} to formatNumbers({blackmarket.price})
+    broadcast ""
+    broadcast "{@blackmarket-prefix}<gradient:#B967FF:#120018>&lA BLACK MARKET BUYER HAS ARRIVED!</gradient>"
+    broadcast "{@blackmarket-prefix}&7Buying: &f%{blackmarket.request}% &8(&f%{_itemName}%&8)"
+    broadcast "{@blackmarket-prefix}&7Price: &a%{_priceText}% {@blackmarket-currency-name} &7each"
+    broadcast "{@blackmarket-prefix}&7Server stock left: &c%{blackmarket.stock-left}% &8- &f/blackmarket sell <amount>"
+    if {blackmarket.npc-location} is set:
+        broadcast "{@blackmarket-prefix}&7Buyer location: &f%{blackmarket.npc-location}%"
+    broadcast ""
+
+function blackmarket_sell(p: player, amount: number):
+    if {blackmarket.active} is not set:
+        send "{@blackmarket-prefix}&cThe Black Market buyer is not here right now." to {_p}
+        stop
+    if {blackmarket.stock-left} <= 0:
+        blackmarket_end("&cThe buyer is sold out and disappeared.")
+        stop
+    if {blackmarket.npc-location} is not set:
+        send "{@blackmarket-prefix}&cThe buyer location is missing. Tell staff to respawn it." to {_p}
+        stop
+    if world of {_p} is not world of {blackmarket.npc-location}:
+        send "{@blackmarket-prefix}&cYou must be within &f5 blocks &cof the buyer to sell." to {_p}
+        stop
+    if distance between location of {_p} and {blackmarket.npc-location} > 5:
+        send "{@blackmarket-prefix}&cYou must be within &f5 blocks &cof the buyer to sell." to {_p}
+        stop
+    set {_amount} to floor({_amount})
+    if {_amount} < 1:
+        send "{@blackmarket-prefix}&cUse &f/blackmarket sell <amount>&c." to {_p}
+        stop
+
+    set {_item} to {blackmarket.item}
+    set {_available} to amount of {_item} in {_p}'s inventory
+    if {_available} < 1:
+        send "{@blackmarket-prefix}&cYou do not have the item the buyer wants." to {_p}
+        stop
+
+    set {_sellAmount} to {_amount}
+    if {_sellAmount} > {_available}:
+        set {_sellAmount} to {_available}
+    if {_sellAmount} > {blackmarket.stock-left}:
+        set {_sellAmount} to {blackmarket.stock-left}
+
+    remove {_sellAmount} of {_item} from {_p}'s inventory
+    remove {_sellAmount} from {blackmarket.stock-left}
+    set {_earned} to {_sellAmount} * {blackmarket.price}
+    blackmarket_tokens_add({_p}, {_earned})
+    set {_earnedText} to formatNumbers({_earned})
+
+    set {_uuid} to uuid of {_p}
+    add {_sellAmount} to {blackmarket.sold::%{_uuid}%}
+
+    send "{@blackmarket-prefix}&aSold &f%{_sellAmount}% &aitems for &f%{_earnedText}% {@blackmarket-currency-name}&a." to {_p}
+    broadcast "{@blackmarket-prefix}&f%{_p}% &7sold &f%{_sellAmount}%&7. Stock left: &c%{blackmarket.stock-left}%"
+
+    if {blackmarket.stock-left} <= 0:
+        blackmarket_end("&cThe buyer bought everything and vanished.")
+
+function blackmarket_status(p: player):
+    if {blackmarket.active} is not set:
+        send "{@blackmarket-prefix}&cNo Black Market buyer is active." to {_p}
+        stop
+
+    set {_itemName} to blackmarket_format_item({blackmarket.item})
+    set {_priceText} to formatNumbers({blackmarket.price})
+    send "&8&m----------&r <gradient:#B967FF:#120018>&lBlack Market</gradient> &8&m----------" to {_p}
+    send "&7Wanted: &f%{blackmarket.request}% &8(&f%{_itemName}%&8)" to {_p}
+    send "&7Price: &a%{_priceText}% {@blackmarket-currency-name} &7each" to {_p}
+    send "&7Server stock left: &c%{blackmarket.stock-left}%" to {_p}
+    send "&7Ends in: &f%{blackmarket.active-minutes}% minutes" to {_p}
+    send "&7Sell: &f/blackmarket sell <amount>" to {_p}
+    send "&8&m--------------------------------" to {_p}
+
+function blackmarket_help(p: player):
+    send "&8&m----------&r <gradient:#B967FF:#120018>&lBlack Market Commands</gradient> &8&m----------" to {_p}
+    send "{@blackmarket-prefix}&f/bm &8- &7Show this command list." to {_p}
+    send "{@blackmarket-prefix}&f/bm sell <amount> &8- &7Sell wanted items." to {_p}
+    send "{@blackmarket-prefix}&f/bm all &8- &7Sell all wanted items you have." to {_p}
+    if {_p} has permission "skyexpress.blackmarket.admin":
+        send "{@blackmarket-prefix}&f/bm spawns &8- &7List configured market spots." to {_p}
+        send "{@blackmarket-prefix}&f/bm start &8- &7Force start an event." to {_p}
+        send "{@blackmarket-prefix}&f/bm spawn &8- &7Respawn the active buyer." to {_p}
+        send "{@blackmarket-prefix}&f/bm stop &8- &7Stop the active event." to {_p}
+        send "{@blackmarket-prefix}&f/bm reroll &8- &7Reroll the wanted item." to {_p}
+        send "{@blackmarket-prefix}&f/bm setspawn &8- &7Add a spawn spot." to {_p}
+        send "{@blackmarket-prefix}&f/bm clearspawns &8- &7Clear all spawn spots." to {_p}
+    send "&8&m-------------------------------------" to {_p}
+
+every 1 minute:
+    if {blackmarket.active} is set:
+        remove 1 from {blackmarket.active-minutes}
+        if {blackmarket.active-minutes} <= 0:
+            blackmarket_end("&7The Black Market buyer left town.")
+    else:
+        if {blackmarket.next-start-minutes} is not set:
+            set {blackmarket.next-start-minutes} to random integer between 0 and 60
+
+    if {blackmarket.next-start-minutes} is set:
+        remove 1 from {blackmarket.next-start-minutes}
+        if {blackmarket.next-start-minutes} <= 0:
+            if {blackmarket.active} is not set:
+                delete {blackmarket.next-start-minutes}
+                blackmarket_start()
+
+on join:
+    while player is online:
+        if {blackmarket.active} is set:
+            if {blackmarket.npc-uuid} is set:
+                loop all entities:
+                    if uuid of loop-entity is {blackmarket.npc-uuid}:
+                        if {blackmarket.npc-location} is set:
+                            set {_npc} to loop-entity
+                            delete {_target}
+                            set {_closestDistance} to 999
+                            loop all players:
+                                if world of loop-player is world of {blackmarket.npc-location}:
+                                    set {_distance} to distance between loop-player and {blackmarket.npc-location}
+                                    if {_distance} <= 8:
+                                        if {_distance} < {_closestDistance}:
+                                            set {_closestDistance} to {_distance}
+                                            set {_target} to loop-player
+
+                            if {_target} is set:
+                                make {_npc} face {_target}
+
+                            set {_lookLocation} to location of {_npc}
+                            set x-coordinate of {_lookLocation} to x-coordinate of {blackmarket.npc-location}
+                            set y-coordinate of {_lookLocation} to y-coordinate of {blackmarket.npc-location}
+                            set z-coordinate of {_lookLocation} to z-coordinate of {blackmarket.npc-location}
+                            set pitch of {_lookLocation} to 0
+                            teleport {_npc} to {_lookLocation}
+        wait 2 seconds
+on damage of villager:
+    if {blackmarket.npc-uuid} is set:
+        if uuid of victim is {blackmarket.npc-uuid}:
+            cancel event
+
+on right click on villager:
+    if {blackmarket.npc-uuid} is set:
+        if uuid of clicked entity is {blackmarket.npc-uuid}:
+            cancel event
+            blackmarket_status(player)
+
+command /blackmarket [<text>] [<number>]:
+    aliases: /bm
+    usage: /blackmarket <help|start|spawn|stop|reroll|setspawn|spawns|clearspawns|sell|all>
+    trigger:
+        if arg-1 is not set:
+            blackmarket_help(player)
+            stop
+
+        if arg-1 is "help":
+            blackmarket_help(player)
+            stop
+
+        if arg-1 is "sell":
+            if arg-2 is not set:
+                send "{@blackmarket-prefix}&cUse &f/blackmarket sell <amount>&c." to player
+                stop
+            blackmarket_sell(player, arg-2)
+            stop
+
+        if arg-1 is "all":
+            if {blackmarket.active} is not set:
+                send "{@blackmarket-prefix}&cThe Black Market buyer is not here right now." to player
+                stop
+            set {_amount} to amount of {blackmarket.item} in player's inventory
+            if {_amount} < 1:
+                send "{@blackmarket-prefix}&cYou do not have the item the buyer wants." to player
+                stop
+            blackmarket_sell(player, {_amount})
+            stop
+
+        if player has permission "skyexpress.blackmarket.admin":
+            if arg-1 is "start":
+                if {blackmarket.active} is set:
+                    send "{@blackmarket-prefix}&cA Black Market buyer is already active." to player
+                    stop
+                blackmarket_start()
+                stop
+
+            if arg-1 is "spawn":
+                if {blackmarket.active} is set:
+                    blackmarket_spawn_npc()
+                    send "{@blackmarket-prefix}&aRespawned the active Black Market buyer at a configured spot." to player
+                    stop
+                blackmarket_start()
+                stop
+
+            if arg-1 is "spawns":
+                blackmarket_list_spawns(player)
+                stop
+
+            if arg-1 is "stop":
+                blackmarket_end("&7The Black Market buyer was removed by staff.")
+                stop
+
+            if arg-1 is "reroll":
+                if {blackmarket.active} is not set:
+                    send "{@blackmarket-prefix}&cNo Black Market buyer is active." to player
+                    stop
+                blackmarket_set_deal(random integer between 1 and 8)
+                send "{@blackmarket-prefix}&aRerolled the active Black Market deal." to player
+                blackmarket_status(player)
+                stop
+
+            if arg-1 is "setspawn":
+                set {_worldName} to name of world of player
+                if size of {blackmarket.spawn::%{_worldName}%::*} >= 2:
+                    send "{@blackmarket-prefix}&cThat dimension already has 2 Black Market spots." to player
+                    stop
+                add location of player to {blackmarket.spawn::%{_worldName}%::*}
+                set {blackmarket.spawn-worlds::%{_worldName}%} to true
+                send "{@blackmarket-prefix}&aAdded this location for &f%{_worldName}%&a. Use 2 spots per dimension." to player
+                stop
+
+            if arg-1 is "clearspawns":
+                delete {blackmarket.spawn::*}
+                delete {blackmarket.spawn-worlds::*}
+                delete {blackmarket.next-start-minutes}
+                send "{@blackmarket-prefix}&aCleared all Black Market spawn points." to player
+                stop
+
+
+        send "{@blackmarket-prefix}&cUse &f/blackmarket&c, or &f/bm for help&c." to player

@@ -1,0 +1,513 @@
+# -------------------------------------------------------------------------
+# BATTLE PASS SCRIPT - REFACTORED & EXPANDED (NO ADDONS REQUIRED)
+# -------------------------------------------------------------------------
+
+options:
+    gui-title: &6&lʙᴀᴛᴛᴇʟᴘᴀss
+    reward-title: &6&lʀᴇᴡᴀʀᴅs
+    quest-title: &6&lǫᴜᴇsᴛs
+    lb-title: &f&lʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ
+    
+    prefix: &6&lʙᴀᴛᴛᴇʟᴘᴀss &8»&r
+    info-prefix: &b&lɪɴғᴏ &8»&r
+    
+    # --- SOUND EFFECTS ---
+    click-sound: "ui.button.click"
+    open-sound: "block.barrel.open"
+    claim-sound: "entity.experience_orb.pickup"
+    level-sound: "ui.toast.challenge_complete"
+    quest-open-sound: "item.book.page_turn"
+    booster-sound: "entity.player.levelup"
+    quest-complete-sound: "entity.player.levelup"
+
+# -------------------------------------------------------------------------
+# CONFIGURATION LOADING
+# -------------------------------------------------------------------------
+
+on load:
+    bpReloadConfig()
+
+function bpReloadConfig():
+    # Native Config using Global Variables
+    if {bp::cfg::season::current_id} is not set:
+        set {bp::cfg::season::current_id} to 1
+    set {bp::cfg::season::name} to "Spring Party"
+    if {bp::cfg::season::end_timestamp} is not set:
+        set {bp::cfg::season::end_timestamp} to (unix timestamp of now + 7776000)
+    set {bp::cfg::season::req_xp_base} to 1000
+    set {bp::cfg::season::req_xp_multiplier} to 1.1
+    
+    delete {bp::cfg::quests::daily::*}
+    # Quest: Zombies
+    set {bp::cfg::quests::daily::zombies::type} to "kill"
+    set {bp::cfg::quests::daily::zombies::target} to "zombie"
+    set {bp::cfg::quests::daily::zombies::amount} to 10
+    set {bp::cfg::quests::daily::zombies::xp} to 100
+    set {bp::cfg::quests::daily::zombies::name} to "Zombie Hunter"
+    set {bp::cfg::quests::daily::zombies::icon} to iron sword
+    
+    # Quest: Miner
+    set {bp::cfg::quests::daily::miner::type} to "mine"
+    set {bp::cfg::quests::daily::miner::target} to "stone"
+    set {bp::cfg::quests::daily::miner::amount} to 100
+    set {bp::cfg::quests::daily::miner::xp} to 500
+    set {bp::cfg::quests::daily::miner::name} to "Miner"
+    set {bp::cfg::quests::daily::miner::icon} to stone pickaxe
+    
+    # Quest: Playtime
+    set {bp::cfg::quests::daily::playtime::type} to "playtime"
+    set {bp::cfg::quests::daily::playtime::amount} to 60
+    set {bp::cfg::quests::daily::playtime::xp} to 300
+    set {bp::cfg::quests::daily::playtime::name} to "Dedicated Player"
+    set {bp::cfg::quests::daily::playtime::icon} to clock
+    
+    delete {bp::cfg::quests::weekly::*}
+    # Quest: Massacre
+    set {bp::cfg::quests::weekly::massacre::type} to "kill_any"
+    set {bp::cfg::quests::weekly::massacre::amount} to 100
+    set {bp::cfg::quests::weekly::massacre::xp} to 2000
+    set {bp::cfg::quests::weekly::massacre::name} to "Massacre"
+    set {bp::cfg::quests::weekly::massacre::icon} to diamond sword
+    
+    delete {bp::cfg::rewards::*}
+    # Rewards Tier 1
+    add "diamond:1" to {bp::cfg::rewards::1::free::items::*}
+    add "say %%player%% reached Tier 1!" to {bp::cfg::rewards::1::free::cmds::*}
+    add "diamond_block:1" to {bp::cfg::rewards::1::premium::items::*}
+    add "say %%player%% got premium Tier 1!" to {bp::cfg::rewards::1::premium::cmds::*}
+    
+    # Rewards Tier 2
+    add "iron_ingot:10" to {bp::cfg::rewards::2::free::items::*}
+    add "iron_block:5" to {bp::cfg::rewards::2::premium::items::*}
+
+    bpCheckSeason()
+
+# -------------------------------------------------------------------------
+# SEASON & XP LOGIC
+# -------------------------------------------------------------------------
+
+function bpCheckSeason():
+    set {_now} to unix timestamp of now
+    if {_now} >= {bp::cfg::season::end_timestamp}:
+        # Season has ended! Increment season
+        add 1 to {bp::cfg::season::current_id}
+        # Extend end time by 90 days for next season
+        set {bp::cfg::season::end_timestamp} to {_now} + 7776000
+        broadcast "{@prefix} &d&lA NEW SEASON HAS BEGUN! &7Welcome to Season %{bp::cfg::season::current_id}%!"
+
+function bpGetReqXP(level: number) :: number:
+    set {_base} to {bp::cfg::season::req_xp_base}
+    set {_mult} to {bp::cfg::season::req_xp_multiplier}
+    set {_req} to {_base} * ({_mult} ^ ({_level} - 1))
+    return round({_req})
+
+function bpAddXP(p: player, amount: number):
+    set {_uuid} to uuid of {_p}
+    set {_season} to {bp::cfg::season::current_id}
+    
+    if {bp::data::%{_season}%::%{_uuid}%::level} is not set:
+        set {bp::data::%{_season}%::%{_uuid}%::level} to 1
+    if {bp::data::%{_season}%::%{_uuid}%::xp} is not set:
+        set {bp::data::%{_season}%::%{_uuid}%::xp} to 0
+        
+    add {_amount} to {bp::data::%{_season}%::%{_uuid}%::xp}
+    
+    set {_level} to {bp::data::%{_season}%::%{_uuid}%::level}
+    set {_req} to bpGetReqXP({_level})
+    
+    while {bp::data::%{_season}%::%{_uuid}%::xp} >= {_req}:
+        remove {_req} from {bp::data::%{_season}%::%{_uuid}%::xp}
+        add 1 to {bp::data::%{_season}%::%{_uuid}%::level}
+        set {_level} to {bp::data::%{_season}%::%{_uuid}%::level}
+        set {_req} to bpGetReqXP({_level})
+        
+        send "{@prefix} &a&lʟᴇᴠᴇʟ ᴜᴘ! &7ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ʟᴇᴠᴇʟ &e%{_level}%" to {_p}
+        play sound {@level-sound} to {_p}
+
+# -------------------------------------------------------------------------
+# DYNAMIC QUEST TRACKING
+# -------------------------------------------------------------------------
+
+function bpCheckQuest(p: player, type: text, target: text = ""):
+    bpCheckSeason()
+    set {_season} to {bp::cfg::season::current_id}
+    
+    # Check Daily
+    loop {bp::cfg::quests::daily::*}:
+        set {_q} to loop-index
+        if {bp::cfg::quests::daily::%{_q}%::type} is {_type}:
+            set {_match} to false
+            if {_target} is "":
+                set {_match} to true
+            else if {bp::cfg::quests::daily::%{_q}%::target} is {_target}:
+                set {_match} to true
+            else if {bp::cfg::quests::daily::%{_q}%::target} is not set:
+                set {_match} to true
+                
+            if {_match} is true:
+                set {_uuid} to uuid of {_p}
+                set {_current} to {bp::data::%{_season}%::%{_uuid}%::quests::daily::%{_q}%}
+                if {_current} is not set:
+                    set {_current} to 0
+                set {_max} to {bp::cfg::quests::daily::%{_q}%::amount}
+                
+                if {_current} < {_max}:
+                    add 1 to {bp::data::%{_season}%::%{_uuid}%::quests::daily::%{_q}%}
+                    if {bp::data::%{_season}%::%{_uuid}%::quests::daily::%{_q}%} >= {_max}:
+                        set {_xp} to {bp::cfg::quests::daily::%{_q}%::xp}
+                        set {_name} to {bp::cfg::quests::daily::%{_q}%::name}
+                        bpAddXP({_p}, {_xp})
+                        send "{@prefix} &a&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇ: &f%{_name}% &b(+%{_xp}% хᴘ)" to {_p}
+                        play sound {@quest-complete-sound} to {_p}
+                        
+    # Check Weekly
+    loop {bp::cfg::quests::weekly::*}:
+        set {_q} to loop-index
+        if {bp::cfg::quests::weekly::%{_q}%::type} is {_type}:
+            set {_match} to false
+            if {_target} is "":
+                set {_match} to true
+            else if {bp::cfg::quests::weekly::%{_q}%::target} is {_target}:
+                set {_match} to true
+            else if {bp::cfg::quests::weekly::%{_q}%::target} is not set:
+                set {_match} to true
+                
+            if {_match} is true:
+                set {_uuid} to uuid of {_p}
+                set {_current} to {bp::data::%{_season}%::%{_uuid}%::quests::weekly::%{_q}%}
+                if {_current} is not set:
+                    set {_current} to 0
+                set {_max} to {bp::cfg::quests::weekly::%{_q}%::amount}
+                
+                if {_current} < {_max}:
+                    add 1 to {bp::data::%{_season}%::%{_uuid}%::quests::weekly::%{_q}%}
+                    if {bp::data::%{_season}%::%{_uuid}%::quests::weekly::%{_q}%} >= {_max}:
+                        set {_xp} to {bp::cfg::quests::weekly::%{_q}%::xp}
+                        set {_name} to {bp::cfg::quests::weekly::%{_q}%::name}
+                        bpAddXP({_p}, {_xp})
+                        send "{@prefix} &6&lᴡᴇᴇᴋʟʏ ǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇ: &f%{_name}% &b(+%{_xp}% хᴘ)" to {_p}
+                        play sound {@quest-complete-sound} to {_p}
+
+# Quest Event Hooks
+on death:
+    if attacker is a player:
+        # Pass victim's name stripped of spaces/lowercase
+        set {_t} to "%victim%"
+        replace all " " with "_" in {_t}
+        bpCheckQuest(attacker, "kill", {_t})
+        bpCheckQuest(attacker, "kill_any")
+
+on break:
+    set {_t} to "%event-block%"
+    replace all " " with "_" in {_t}
+    bpCheckQuest(player, "mine", {_t})
+    
+every 1 minute:
+    loop all players:
+        bpCheckQuest(loop-player, "playtime")
+
+# -------------------------------------------------------------------------
+# COMMANDS
+# -------------------------------------------------------------------------
+
+command /battlepass:
+    aliases: /bp
+    trigger:
+        bpOpenMain(player)
+        
+command /bpadmin [<text>]:
+    permission: battlepass.admin
+    trigger:
+        if arg-1 is "reload":
+            bpReloadConfig()
+            send "{@prefix} &aConfig reloaded." to player
+        else if arg-1 is "skipseason":
+            set {_now} to unix timestamp of now
+            set {bp::cfg::season::end_timestamp} to {_now}
+            bpCheckSeason()
+            send "{@prefix} &aSeason skipped." to player
+        else:
+            send "{@prefix} &cUsage: /bpadmin <reload|skipseason>" to player
+
+# -------------------------------------------------------------------------
+# REWARD CLAIMING
+# -------------------------------------------------------------------------
+
+function bpClaimReward(p: player, tier: number, track: text):
+    set {_uuid} to uuid of {_p}
+    set {_season} to {bp::cfg::season::current_id}
+    
+    if {bp::data::%{_season}%::%{_uuid}%::claimed::%{_track}%::%{_tier}%} is set:
+        send "{@prefix} &cYou already claimed this reward!" to {_p}
+        play sound {@click-sound} to {_p}
+        stop
+        
+    set {_level} to {bp::data::%{_season}%::%{_uuid}%::level}
+    if {_level} is not set:
+        set {_level} to 1
+    if {_level} < {_tier}:
+        send "{@prefix} &cYou need Level %{_tier}% to unlock this!" to {_p}
+        play sound {@click-sound} to {_p}
+        stop
+        
+    if {_track} is "premium":
+        if {_p} does not have permission "battlepass.premium":
+            send "{@prefix} &cYou need the Premium Pass to claim this!" to {_p}
+            play sound {@click-sound} to {_p}
+            stop
+            
+    set {_items::*} to {bp::cfg::rewards::%{_tier}%::%{_track}%::items::*}
+    set {_cmds::*} to {bp::cfg::rewards::%{_tier}%::%{_track}%::cmds::*}
+    
+    if size of {_items::*} is 0:
+        if size of {_cmds::*} is 0:
+            send "{@prefix} &cNo reward configured for this tier." to {_p}
+            stop
+            
+    loop {_items::*}:
+        set {_split::*} to loop-value split at ":"
+        set {_itemType} to {_split::1} parsed as item type
+        set {_amount} to {_split::2} parsed as integer
+        if {_amount} is not set:
+            set {_amount} to 1
+        give {_amount} of {_itemType} to {_p}
+        
+    loop {_cmds::*}:
+        set {_cmd} to loop-value
+        replace all "%%player%%" with "%{_p}%" in {_cmd}
+        execute console command {_cmd}
+        
+    set {bp::data::%{_season}%::%{_uuid}%::claimed::%{_track}%::%{_tier}%} to true
+    
+    set {_trackName} to "Free"
+    if {_track} is "premium":
+        set {_trackName} to "&6Premium"
+    send "{@prefix} &aSuccessfully claimed %{_trackName}% &aReward &fᴛɪᴇʀ %{_tier}%&a!" to {_p}
+    play sound {@claim-sound} to {_p}
+
+# -------------------------------------------------------------------------
+# GUI SECTION
+# -------------------------------------------------------------------------
+
+function bpOpenMain(p: player):
+    set {_gui} to a new chest inventory with 6 rows named "{@gui-title}"
+    loop integers between 0 and 53:
+        set slot loop-value of {_gui} to gray stained glass pane named "&7"
+        
+    set {_season} to {bp::cfg::season::current_id}
+    set {_uuid} to uuid of {_p}
+    
+    set {_xp} to {bp::data::%{_season}%::%{_uuid}%::xp}
+    if {_xp} is not set:
+        set {_xp} to 0
+    set {_level} to {bp::data::%{_season}%::%{_uuid}%::level}
+    if {_level} is not set:
+        set {_level} to 1
+        
+    set {_req} to bpGetReqXP({_level})
+    set {_progress} to ({_xp} / {_req}) * 10
+    set {_bar} to ""
+    loop 10 times:
+        if loop-number <= {_progress}:
+            set {_bar} to "%{_bar}%&a|"
+        else:
+            set {_bar} to "%{_bar}%&7|"
+            
+    set {_now} to unix timestamp of now
+    set {_diff} to {bp::cfg::season::end_timestamp} - {_now}
+    set {_days} to floor({_diff} / 86400)
+            
+    set slot 13 of {_gui} to minecart named "&esᴇᴀsᴏɴ sᴛᴀᴛᴜs: &f%{bp::cfg::season::name}%" with lore "&d&oʟᴇᴠᴇʟ: &f%{_level}%", "&d&oхᴘ: &f%{_xp}% / %{_req}%", "&8[%{_bar}%&8]", "", "&e&oTime Left: &f%{_days}% Days", "", "&e&oᴄʟɪᴄᴋ ғᴏʀ ᴍᴏʀᴇ ɪɴғᴏ"
+    
+    set slot 46 of {_gui} to writable book named "&eǫᴜᴇsᴛs" with lore "&d&oᴠɪᴇᴡ ᴅᴀɪʟʏ ᴀɴᴅ ᴡᴇᴇᴋʟʏ ǫᴜᴇꜱᴛꜱ"
+    set slot 48 of {_gui} to chest minecart named "&6ʀᴇᴡᴀʀᴅs" with lore "&d&oᴄʟᴀɪᴍ ʏᴏᴜʀ ʀᴇᴡᴀʀᴅs ʜᴇʀᴇ"
+    set slot 49 of {_gui} to nether star named "&bʙᴀᴛᴛʟᴇ ᴘᴀss ɪɴғᴏ" with lore "&d&oᴠɪᴇᴡ ᴘᴀss ᴅᴇᴛᴀɪʟs"
+    set slot 50 of {_gui} to paper named "&fʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ" with lore "&d&oᴠɪᴇᴡ ᴛᴏᴘ ᴘʟᴀʏᴇʀs"
+    set slot 52 of {_gui} to experience bottle named "&aʙᴏᴏsᴛᴇʀs" with lore "&d&oᴠɪᴇᴡ ᴀᴄᴛɪᴠᴇ ʙᴏᴏsᴛᴇʀs!"
+    
+    open {_gui} to {_p}
+    play sound {@open-sound} to {_p}
+
+function bpOpenLeaderboard(p: player):
+    set {_gui} to a new chest inventory with 6 rows named "{@lb-title}"
+    loop integers between 0 and 53:
+        set slot loop-value of {_gui} to gray stained glass pane named "&7"
+        
+    set {_season} to {bp::cfg::season::current_id}
+    
+    delete {_lb::*}
+    loop all players:
+        set {_uuid} to uuid of loop-player
+        set {_level} to {bp::data::%{_season}%::%{_uuid}%::level}
+        if {_level} is not set:
+            set {_level} to 1
+        set {_lb::%loop-player%} to {_level}
+        
+    set {_slot} to 9
+    loop 27 times:
+        set {_max} to -1
+        set {_topPlayer} to ""
+        loop {_lb::*}:
+            if loop-value-2 > {_max}:
+                set {_max} to loop-value-2
+                set {_topPlayer} to loop-index
+        if {_topPlayer} is not "":
+            set {_pObj} to {_topPlayer} parsed as player
+            set slot {_slot} of {_gui} to {_pObj}'s skull named "&e#%loop-number% &f%{_topPlayer}%" with lore "&d&oʟᴇᴠᴇʟ: &f%{_max}%"
+            delete {_lb::%{_topPlayer}%}
+            add 1 to {_slot}
+        else:
+            exit loop
+            
+    set slot 49 of {_gui} to barrier named "&c&lʙᴀᴄᴋ"
+    open {_gui} to {_p}
+
+function bpOpenQuests(p: player, page: number = 1):
+    set {_gui} to a new chest inventory with 6 rows named "{@quest-title}"
+    loop integers between 0 and 53:
+        set slot loop-value of {_gui} to gray stained glass pane named "&7"
+        
+    set slot 4 of {_gui} to writable book named "&e&lǫᴜᴇsᴛs"
+    
+    set {_season} to {bp::cfg::season::current_id}
+    set {_uuid} to uuid of {_p}
+    
+    set {_slot} to 19
+    loop {bp::cfg::quests::daily::*}:
+        if {_slot} > 25:
+            exit loop
+        set {_q} to loop-index
+        set {_max} to {bp::cfg::quests::daily::%{_q}%::amount}
+        set {_cur} to {bp::data::%{_season}%::%{_uuid}%::quests::daily::%{_q}%}
+        if {_cur} is not set:
+            set {_cur} to 0
+        set {_name} to {bp::cfg::quests::daily::%{_q}%::name}
+        set {_xp} to {bp::cfg::quests::daily::%{_q}%::xp}
+        set {_icon} to {bp::cfg::quests::daily::%{_q}%::icon}
+        
+        if {_cur} >= {_max}:
+            set slot {_slot} of {_gui} to barrier named "&c&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ" with lore "&7%{_name}%", "", "&a✔ &7ʏᴏᴜ ʜᴀᴠᴇ ғɪɴɪsʜᴇᴅ ᴛʜɪs ᴛᴀsᴋ!"
+        else:
+            set slot {_slot} of {_gui} to {_icon} named "&f&l%{_name}%" with lore "&7Daily Task", "", "&fᴘʀᴏɢʀᴇss: &e%{_cur}%/%{_max}%", "", "&6ʀᴇᴡᴀʀᴅ: &b+%{_xp}% хᴘ"
+        add 1 to {_slot}
+        
+    set {_slot} to 28
+    loop {bp::cfg::quests::weekly::*}:
+        if {_slot} > 34:
+            exit loop
+        set {_q} to loop-index
+        set {_max} to {bp::cfg::quests::weekly::%{_q}%::amount}
+        set {_cur} to {bp::data::%{_season}%::%{_uuid}%::quests::weekly::%{_q}%}
+        if {_cur} is not set:
+            set {_cur} to 0
+        set {_name} to {bp::cfg::quests::weekly::%{_q}%::name}
+        set {_xp} to {bp::cfg::quests::weekly::%{_q}%::xp}
+        set {_icon} to {bp::cfg::quests::weekly::%{_q}%::icon}
+        
+        if {_cur} >= {_max}:
+            set slot {_slot} of {_gui} to barrier named "&c&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ" with lore "&7%{_name}%", "", "&a✔ &7ʏᴏᴜ ʜᴀᴠᴇ ғɪɴɪsʜᴇᴅ ᴛʜɪs ᴛᴀsᴋ!"
+        else:
+            set slot {_slot} of {_gui} to {_icon} named "&6&l%{_name}%" with lore "&7Weekly Task", "", "&fᴘʀᴏɢʀᴇss: &e%{_cur}%/%{_max}%", "", "&6ʀᴇᴡᴀʀᴅ: &b+%{_xp}% хᴘ"
+        add 1 to {_slot}
+        
+    set slot 49 of {_gui} to barrier named "&c&lʙᴀᴄᴋ"
+    open {_gui} to {_p}
+
+function bpOpenRewards(p: player, page: number):
+    set {_title} to "{@reward-title} &8- ᴘᴀɢᴇ %{_page}%"
+    set {_gui} to a new chest inventory with 6 rows named "%{_title}%"
+    
+    set {_season} to {bp::cfg::season::current_id}
+    set {_uuid} to uuid of {_p}
+    set {_level} to {bp::data::%{_season}%::%{_uuid}%::level}
+    if {_level} is not set:
+        set {_level} to 1
+        
+    loop integers between 0 and 53:
+        set slot loop-value of {_gui} to gray stained glass pane named "&7"
+        
+    loop 7 times:
+        set {_tier} to loop-number + (({_page} - 1) * 7)
+        set {_col} to loop-number - 1
+        set {_freeSlot} to 19 + {_col}
+        set {_tierSlot} to 28 + {_col}
+        set {_premSlot} to 37 + {_col}
+        
+        set slot {_tierSlot} of {_gui} to paper named "&e&lᴛɪᴇʀ %{_tier}%"
+        
+        if {_level} >= {_tier}:
+            if {bp::data::%{_season}%::%{_uuid}%::claimed::free::%{_tier}%} is set:
+                set slot {_freeSlot} of {_gui} to chest minecart named "&a&lғʀᴇᴇ ʀᴇᴡᴀʀᴅ &7(Tier %{_tier}%)" with lore "&7Status: &8ᴄʟᴀɪᴍᴇᴅ"
+            else:
+                set slot {_freeSlot} of {_gui} to chest named "&a&lғʀᴇᴇ ʀᴇᴡᴀʀᴅ &7(Tier %{_tier}%)" with lore "&7Status: &a&lᴜɴʟᴏᴄᴋᴇᴅ", "", "&e&oᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ!"
+        else:
+            set slot {_freeSlot} of {_gui} to minecart named "&7&lғʀᴇᴇ ʀᴇᴡᴀʀᴅ &7(Tier %{_tier}%)" with lore "&7Status: &c&lʟᴏᴄᴋᴇᴅ", "&7Requires Level %{_tier}%"
+            
+        if {_level} >= {_tier}:
+            if {bp::data::%{_season}%::%{_uuid}%::claimed::premium::%{_tier}%} is set:
+                set slot {_premSlot} of {_gui} to chest minecart named "&6&lᴘʀᴇᴍɪᴜᴍ ʀᴇᴡᴀʀᴅ &7(Tier %{_tier}%)" with lore "&7Status: &8ᴄʟᴀɪᴍᴇᴅ"
+            else:
+                set slot {_premSlot} of {_gui} to ender chest named "&6&lᴘʀᴇᴍɪᴜᴍ ʀᴇᴡᴀʀᴅ &7(Tier %{_tier}%)" with lore "&7Status: &a&lᴜɴʟᴏᴄᴋᴇᴅ", "", "&e&oᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ!"
+        else:
+            set slot {_premSlot} of {_gui} to minecart named "&7&lᴘʀᴇᴍɪᴜᴍ ʀᴇᴡᴀʀᴅ &7(Tier %{_tier}%)" with lore "&7Status: &c&lʟᴏᴄᴋᴇᴅ", "&7Requires Level %{_tier}%"
+
+    if {_page} > 1:
+        set slot 45 of {_gui} to arrow named "&e&lᴘʀᴇᴠɪᴏᴜs ᴘᴀɢᴇ"
+    set slot 53 of {_gui} to arrow named "&e&lɴᴇxᴛ ᴘᴀɢᴇ"
+    set slot 49 of {_gui} to barrier named "&c&lʙᴀᴄᴋ"
+    
+    open {_gui} to {_p}
+
+# -------------------------------------------------------------------------
+# GUI CLICK HANDLERS
+# -------------------------------------------------------------------------
+
+on inventory click:
+    if name of event-inventory is "{@gui-title}":
+        cancel event
+        if index of event-slot is 46:
+            play sound {@quest-open-sound} to player
+            bpOpenQuests(player, 1)
+        else if index of event-slot is 48:
+            play sound {@click-sound} to player
+            bpOpenRewards(player, 1)
+        else if index of event-slot is 50:
+            play sound {@click-sound} to player
+            bpOpenLeaderboard(player)
+
+    if name of event-inventory is "{@quest-title}" or "{@lb-title}":
+        cancel event
+        if index of event-slot is 49:
+            play sound {@click-sound} to player
+            bpOpenMain(player)
+
+    if name of event-inventory contains "{@reward-title}":
+        cancel event
+        set {_page} to 1
+        set {_title} to name of event-inventory
+        set {_split::*} to {_title} split at "ᴘᴀɢᴇ "
+        if {_split::2} is set:
+            set {_page} to {_split::2} parsed as integer
+            
+        if index of event-slot is 49:
+            play sound {@click-sound} to player
+            bpOpenMain(player)
+        else if index of event-slot is 45:
+            if {_page} > 1:
+                play sound {@click-sound} to player
+                bpOpenRewards(player, {_page} - 1)
+        else if index of event-slot is 53:
+            play sound {@click-sound} to player
+            bpOpenRewards(player, {_page} + 1)
+            
+        if index of event-slot is between 19 and 25:
+            set {_col} to index of event-slot - 19
+            set {_tier} to ({_col} + 1) + (({_page} - 1) * 7)
+            bpClaimReward(player, {_tier}, "free")
+            bpOpenRewards(player, {_page}) 
+            
+        if index of event-slot is between 37 and 43:
+            set {_col} to index of event-slot - 37
+            set {_tier} to ({_col} + 1) + (({_page} - 1) * 7)
+            bpClaimReward(player, {_tier}, "premium")
+            bpOpenRewards(player, {_page})

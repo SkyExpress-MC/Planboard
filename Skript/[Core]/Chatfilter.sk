@@ -1,0 +1,150 @@
+on script load:
+	clear {Filter::List::*}
+	
+	load yaml "plugins/Skript/YAML/filter/sev-1.yml" as "filter-sev1"
+	load yaml "plugins/Skript/YAML/filter/sev-2.yml" as "filter-sev2"
+	
+	loop yaml list "words" from "filter-sev1":
+		addFilter(loop-value, 3)
+	
+	loop yaml list "words" from "filter-sev2":
+		addFilter(loop-value, 3)
+	
+	unload yaml "filter-sev1"
+	unload yaml "filter-sev2"
+		
+import:
+	java.util.regex.Pattern
+	java.util.regex.Matcher
+
+options:
+	spam-max-repeats: 4      # max times same message in a row (within window)
+	spam-window: 5 seconds    # how long messages are remembered
+	spam-min-delay: 500       # minimum ms between messages (rate limit)
+	spam-caps-min-length: 15   # only check caps on messages this long or longer
+	spam-caps-ratio: 0.7      # % of letters that must be uppercase to flag
+
+
+function getAllMatches(text: text, regex: text) :: objects:
+	set {_pattern} to Pattern.compile({_regex})
+	set {_matcher} to {_pattern}.matcher({_text})
+	while {_matcher}.find():
+		add {_matcher}.group().trim() to {_matches::*}
+	return {_matches::*}
+
+on chat:
+	if player has permission "filter.bypass":
+		stop
+
+	set {_spam} to checkSpam(player, unformatted message)
+	if {_spam} is not "":
+		cancel event
+		send "<#EBEBEB>[<#E01433>⚠<#EBEBEB>] <#F06E6E>%{_spam}%" to player
+		send "<#EBEBEB>[<#E01433>⚠<#EBEBEB>] <#F06E6E>%player%<#EBEBEB> (spam: %{_spam}%): %unformatted message%" to (all players where [input has permission "staff.seefilter"])
+		play sound "block.note_block.didgeridoo" to player and (all players where [input has permission "staff.seefilter"])
+		stop
+
+	set {_a::*} to checkMessage(message)
+	{_a::*} doesn't contain false:
+		cancel event
+
+		set {_alert} to "<#EBEBEB>[<#E01433>⚠<#EBEBEB>] <#F06E6E>%player%<#EBEBEB>: %unformatted message%"
+		loop {_a::*}:
+			loop getAllMatches(message, {Filter::List::%loop-value%::Check}):
+				replace all loop-value-2 in {_alert} with "<#8052FF>&n%loop-value-2%&r<#EBEBEB>"
+
+		send {_alert} to (all players where [input has permission "staff.seefilter"])
+		send "<#EBEBEB>[<#E01433>⚠<#EBEBEB>] <#F06E6E>Your message contains a blacklisted word!"
+		play sound "block.note_block.didgeridoo" to player and (all players where [input has permission "staff.seefilter"])
+
+function addFilter(word: text, severity: number):
+	add {_word} to {Filter::List::*}
+	set {Filter::List::%{_word}%::Check} to regex({_word}, {_severity})
+	set {Filter::List::%{_word}%::Severity} to {_severity}
+
+function checkMessage(m: text) :: objects:
+	loop {Filter::List::*}:
+		checkForFiltered({_m}, loop-value) = true:
+			add loop-value to {_f::*}
+	return {_f::*} ? false
+
+function checkForFiltered(m: text, word: text) :: object:
+	set {_pattern} to Pattern.compile({Filter::List::%{_word}%::Check})
+	set {_matcher} to {_pattern}.matcher({_m})
+	return {_matcher}.find()
+
+function regex(word: text, severity: number=1) :: text:
+	set {_severity} to 4 if {_severity} > 4, else {_severity}
+	set {_severity} to 1 if {_severity} < 1, else {_severity}
+	
+	set {_map::a} to "[a@4!|_*]"
+	set {_map::b} to "[b8_*]"
+	set {_map::c} to "[c(¢_*]"
+	set {_map::e} to "[e3_*]"
+	set {_map::g} to "[g9_*]"
+	set {_map::h} to "[h#_*]"
+	set {_map::i} to "[i1!|_*]"
+	set {_map::l} to "[l1!|_*]"
+	set {_map::o} to "[o0°_*]"
+	set {_map::s} to "[s5$z_*]"
+	set {_map::t} to "[t7+_*]"
+	set {_map::z} to "[z2_*]"
+	set {_map::u} to "[uµ!|1_*]"
+	set {_map::k} to "[k<_*]"
+
+	
+	if {_severity} is 1:
+		return "(?i)(?<!\w)" + {_word} + "(?!\w)"
+
+	set {_sep} to "(?:\W|_|\d)*"
+	set {_regex} to "(?i)(?<!\w)"
+	loop (({_word} split at "") where [input != ""]):
+		set {_char} to loop-value in lower case
+		if {_severity} is 2:
+			set {_regex} to {_regex} + {_char} + "+" + {_sep}
+		else if {_severity} is 3:
+			if {_map::%{_char}%} is set:
+				set {_regex} to {_regex} + {_map::%{_char}%} + {_sep}
+			else:
+				set {_regex} to {_regex} + {_char} + {_sep}
+		else if {_severity} is 4:
+			set {_regex} to {_regex} + "(?:" + {_char} + "|\d|[^\w\s])+" + {_sep}
+	set {_regex} to {_regex} + "(?!\w)"
+	return {_regex}
+
+################# PREVENT SPAM #################
+function checkSpam(p: player, msg: text) :: text:
+	set {_uuid} to {_p}'s uuid
+	set {_now} to now
+	
+	# Rate limit
+	if {Spam::%{_uuid}%::last} is set:
+		if difference between {_now} and {Spam::%{_uuid}%::last} is less than "{@spam-min-delay} milliseconds" parsed as timespan:
+			return "Slow down!"
+	set {Spam::%{_uuid}%::last} to {_now}
+	
+	set {_letters-only} to "%{_msg}%".replaceAll("[^A-Za-z]", "")
+	if length of {_letters-only} >= {@spam-caps-min-length}:
+		set {_upper-only} to "%{_letters-only}%".replaceAll("[^A-Z]", "")
+		if (length of {_upper-only}) / (length of {_letters-only}) >= {@spam-caps-ratio}:
+			return "Too many caps!"
+	
+	# Repeat check
+	if {Spam::%{_uuid}%::last-msg} is {_msg}:
+		if {Spam::%{_uuid}%::window-start} is set:
+			if difference between {_now} and {Spam::%{_uuid}%::window-start} < {@spam-window}:
+				add 1 to {Spam::%{_uuid}%::count}
+				if {Spam::%{_uuid}%::count} > {@spam-max-repeats}:
+					return "Stop repeating yourself!"
+			else:
+				set {Spam::%{_uuid}%::window-start} to {_now}
+				set {Spam::%{_uuid}%::count} to 1
+		else:
+			set {Spam::%{_uuid}%::window-start} to {_now}
+			set {Spam::%{_uuid}%::count} to 1
+	else:
+		set {Spam::%{_uuid}%::last-msg} to {_msg}
+		set {Spam::%{_uuid}%::window-start} to {_now}
+		set {Spam::%{_uuid}%::count} to 1
+	
+	return ""

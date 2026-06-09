@@ -1,0 +1,279 @@
+# ##############################################
+# Compact Ability System
+# Adding a new ability = add ONE block in `on load`
+# Bind to held item: /pet ability set <ability>
+# ##############################################
+
+on load:
+
+
+    # --- projectile: shoots a wind charge ---
+    set {-ability::projectile::cooldown} to 15 seconds
+    set {-ability::projectile::type} to "projectile"
+    set {-ability::projectile::projectile} to "wind_charge"
+    set {-ability::projectile::sound} to "item.mace.smash_air"
+    set {-ability::projectile::particle_name} to "cloud"
+    set {-ability::projectile::shape} to "burst"
+
+    # --- heal: AoE heal allies ---
+    set {-ability::heal::cooldown} to 1 minute
+    set {-ability::heal::type} to "heal"
+    set {-ability::heal::radius} to 5
+    set {-ability::heal::particle_name} to "happy_villager"
+    set {-ability::heal::sound} to "entity.villager.celebrate"
+    set {-ability::heal::shape} to "ring"
+
+    # --- ignite: AoE set foes on fire ---
+    set {-ability::ignite::cooldown} to 15 seconds
+    set {-ability::ignite::type} to "ignite"
+    set {-ability::ignite::radius} to 6
+    set {-ability::ignite::particle_name} to "flame"
+    set {-ability::ignite::sound} to "entity.blaze.shoot"
+    set {-ability::ignite::shape} to "spiral"
+
+    # --- push: AoE knockback ---
+    set {-ability::push::cooldown} to 30 seconds
+    set {-ability::push::type} to "push"
+    set {-ability::push::radius} to 5
+    set {-ability::push::particle_name} to "totem_of_undying"
+    set {-ability::push::sound} to "entity.generic.explode"
+    set {-ability::push::shape} to "shockwave"
+
+    # --- teleport: dash to target block ---
+    set {-ability::teleport::cooldown} to 1 minute
+    set {-ability::teleport::type} to "teleport"
+    set {-ability::teleport::particle_name} to "portal"
+    set {-ability::teleport::sound} to "entity.enderman.teleport"
+    set {-ability::teleport::shape} to "column"
+
+    # --- poison: AoE poison foes ---
+    set {-ability::poison::cooldown} to 15 seconds
+    set {-ability::poison::type} to "poison"
+    set {-ability::poison::radius} to 5
+    set {-ability::poison::particle_name} to "end_rod"
+    set {-ability::poison::sound} to "entity.puffer_fish.blow_up"
+    set {-ability::poison::shape} to "cloud"
+
+    # ==========================================================
+    # ☀ Sunflower
+    # ==========================================================
+    # A bloom that never stopped chasing the sun.
+    # It drank so deeply of the light that it learned
+    # how to give some back — in a sudden, blinding pillar.
+    #
+    # Friends feel its warmth; enemies, its judgment.
+    # ==========================================================
+    set {-ability::sunflare::cooldown} to 45 seconds
+    set {-ability::sunflare::type} to "sunflare"
+    set {-ability::sunflare::radius} to 5
+    set {-ability::sunflare::particle_name} to "yellow_dust"
+    set {-ability::sunflare::sound} to "block.beacon.activate"
+    set {-ability::sunflare::shape} to "beam"
+
+
+on right click:
+    set {_ability} to string data tag "ability" of player's offhand tool
+    {_ability} is set
+    {-ability::%{_ability}%::type} is set
+    if PlayerIsInSpawn(player) is true:
+        stop
+    if AbilityHasCooldown(player, {-ability::%{_ability}%::cooldown}, {_ability}) is true:
+        stop
+    set {cooldown::%player's uuid%::%{_ability}%} to now
+    ExecuteAbility(player, {_ability})
+
+
+# ==========================================================
+# Execute function, dispatches based on ability type
+# ==========================================================
+local function ExecuteAbility(p: player, ability: string):
+    set {_type} to {-ability::%{_ability}%::type}
+    set {_radius} to {-ability::%{_ability}%::radius}
+    set {_particle} to {-ability::%{_ability}%::particle_name}
+    set {_shape} to {-ability::%{_ability}%::shape}
+    set {_sound} to {-ability::%{_ability}%::sound}
+
+    if {_sound} is set:
+        play sound {_sound} at {_p} for all players
+
+    if {_type} is "projectile":
+        if {-ability::%{_ability}%::projectile} is "wind_charge":
+            shoot a wind charge from {_p}
+        SpawnAbilityParticle({_p}, {_particle}, {_shape}, 1.5)
+        stop
+
+    if {_type} is "teleport":
+        SpawnAbilityParticle({_p}, {_particle}, {_shape}, 2)
+        UseAbility("teleport", {_p}, {_p}, 0)
+        stop
+
+    SpawnAbilityParticle({_p}, {_particle}, {_shape}, {_radius})
+    if {_ability} is "heal":
+        heal {_p}
+    loop all players in radius {_radius} around {_p}:
+        UseAbility({_type}, {_p}, loop-player, {_radius})
+
+
+# ==========================================================
+# Spawn Particles - dispatches based on shape
+# ==========================================================
+local function SpawnAbilityParticle(p: player, type: string, shape: string, radius: number):
+    if {_shape} is "ring":
+        loop 36 times:
+            set {_yaw} to loop-value * 10
+            set {_v} to spherical vector with radius {_radius}, yaw {_yaw}, pitch 0
+            EmitParticle({_type}, location of {_p} ~ {_v}, 1)
+
+    else if {_type} is "push":
+        set {_vec} to vector from location of {_caster} to location of {_target}
+        set y of {_vec} to 0.5
+        set velocity of {_target} to {_vec} * 0.8
+        send "%{prefix}% &aPushed nearby players!" to {_caster}
+
+    else if {_shape} is "spiral":
+        loop 60 times:
+            set {_yaw} to loop-value * 30
+            set {_r} to {_radius} * (loop-value / 60)
+            set {_v} to spherical vector with radius {_r}, yaw {_yaw}, pitch 0
+            set {_loc} to location of {_p} ~ {_v}
+            add (loop-value / 30) to y-coordinate of {_loc}
+            EmitParticle({_type}, {_loc}, 1)
+
+    else if {_shape} is "column":
+        loop 25 times:
+            loop 8 times:
+                set {_yaw} to loop-value-2 * 45
+                set {_v} to spherical vector with radius 1, yaw {_yaw}, pitch 0
+                set {_loc} to location of {_p} ~ {_v}
+                add (loop-value-1 / 6) to y-coordinate of {_loc}
+                EmitParticle({_type}, {_loc}, 1)
+
+    else if {_shape} is "burst":
+        loop 50 times:
+            set {_yaw} to random integer between 0 and 360
+            set {_pitch} to random integer between -90 and 90
+            set {_r} to random number between 0.5 and {_radius}
+            set {_v} to spherical vector with radius {_r}, yaw {_yaw}, pitch {_pitch}
+            EmitParticle({_type}, location of {_p} ~ {_v}, 1)
+
+    else if {_shape} is "cloud":
+        loop 40 times:
+            set {_yaw} to random integer between 0 and 360
+            set {_pitch} to random integer between -45 and 45
+            set {_r} to random number between 0 and {_radius}
+            set {_v} to spherical vector with radius {_r}, yaw {_yaw}, pitch {_pitch}
+            EmitParticle({_type}, location of {_p} ~ {_v}, 3)
+
+    else if {_shape} is "beam":
+        loop 50 times:
+            loop 6 times:
+                set {_yaw} to loop-value-2 * 60
+                set {_v} to spherical vector with radius 0.4, yaw {_yaw}, pitch 0
+                set {_loc} to location of {_p} ~ {_v}
+                add (loop-value-1 * 0.4) to y-coordinate of {_loc}
+                EmitParticle({_type}, {_loc}, 1)
+
+
+# ==========================================================
+# Bind string name to actual particle
+# ==========================================================
+local function EmitParticle(type: string, loc: location, amount: number):
+    if {_type} is "flame":
+        make {_amount} of flame at {_loc} with extra 1 for all players
+    else if {_type} is "happy_villager":
+        make {_amount} of happy_villager at {_loc} with extra 1 for all players
+    else if {_type} is "cloud":
+        make {_amount} of cloud at {_loc} with extra 1 for all players
+    else if {_type} is "totem_of_undying":
+        make {_amount} of totem_of_undying at {_loc} with extra 1 for all players
+    else if {_type} is "portal":
+        make {_amount} of portal at {_loc} with extra 1 for all players
+    else if {_type} is "end_rod":
+        make {_amount} of end_rod at {_loc} with extra 1 for all players
+    else if {_type} is "yellow_dust":
+        draw 1 of dust using dustOption(rgb(255, 215, 0), 1.5) at {_loc}
+
+
+# ==========================================================
+# Deny if player is in spawn
+# ==========================================================
+local function PlayerIsInSpawn(p: player) :: boolean:
+    if {petForbidden::%{_p}%} = true:
+        send "%{prefix}% &cYou cant use this here!" to {_p}
+        return true
+    return false
+
+
+# ==========================================================
+# Check for cooldown
+# ==========================================================
+local function AbilityHasCooldown(p: player, cooldown: timespan, type: string) :: boolean:
+    if {cooldown::%{_p}%::%{_type}%} is not set:
+        return false
+    set {_elapsed} to difference between {cooldown::%{_p}%::%{_type}%} and now
+    if {_elapsed} is less than {_cooldown}:
+        set {_remaining} to difference between {_cooldown} and {_elapsed}
+        send action bar "&6Cooldown: &c%{_remaining}%" to {_p}
+        return true
+    return false
+
+
+# ==========================================================
+# UseAbility - applies an effect to a target player
+# Called by ExecuteAbility for AoE types, plus teleport
+# ==========================================================
+local function UseAbility(type: string, caster: player, target: player, radius: number):
+    # Teleport: caster-only, no target/radius checks
+    if {_type} is "teleport":
+        set {_block} to actual target block of {_caster}
+        if {_block} is not air:
+            set {_loc} to location of {_block}
+            add 1 to y-coordinate of {_loc}
+            set yaw of {_loc} to yaw of {_caster}
+            set pitch of {_loc} to pitch of {_caster}
+            teleport {_caster} to {_loc}
+            play sound "entity.enderman.teleport" at {_loc} for all players
+        else:
+            send "%{prefix}% &cNo target block in sight!" to {_caster}
+        stop
+
+    # AoE: skip self and out-of-range
+    {_caster} is not {_target}
+    set {_dist} to distance between {_caster} and {_target}
+    {_dist} is less than {_radius}
+
+    # Sunflare: dual-nature, bypasses pvp gate
+    if {_type} is "sunflare":
+        if {pvp::%{_target}%} is true:
+            damage {_target} by 4
+            ignite {_target} for 5 seconds
+            send "%{prefix}% &eThe sun burns your foes!" to {_caster}
+        else:
+            apply potion effect of speed 2 for 8 seconds to {_target}
+            apply potion effect of regeneration 2 for 8 seconds to {_target}
+            send "%{prefix}% &eYour allies bask in the warmth!" to {_caster}
+        stop
+
+    # Everything below requires pvp on
+    {pvp::%{_target}%} is true
+
+    if {_type} is "heal":
+        heal {_target}
+        send "%{prefix}% &aHealed nearby players!" to {_caster}
+
+    else if {_type} is "ignite":
+        ignite {_target} for 15 seconds
+        send "%{prefix}% &aIgnited nearby players!" to {_caster}
+
+    else if {_type} is "poison":
+        apply potion effect of poison for 15 seconds to {_target}
+        send "%{prefix}% &aPoisoned nearby players!" to {_caster}
+
+    else if {_type} is "push":
+        set {_vec} to vector from location of {_target} to location of {_caster}
+        set velocity of {_target} to {_vec} * 0.5
+        send "%{prefix}% &aPushed nearby players!" to {_caster}
+
+    else if {_type} is "slow":
+        apply potion effect of slowness 2 for 10 seconds to {_target}
+        send "%{prefix}% &aSlowed nearby players!" to {_caster}

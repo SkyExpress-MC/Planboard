@@ -1,0 +1,588 @@
+
+options:
+    cemenu-prefix: &8[&5&lCustom Enchants&8] &7
+    cemenu-name: &8Custom Enchants
+    cemenu-item-slot: 22
+
+function cemenu_tokens(p: player) :: number:
+    if {data::tokens::%uuid of {_p}%} is not set:
+        set {data::tokens::%uuid of {_p}%} to 0
+    return {data::tokens::%uuid of {_p}%}
+
+function cemenu_token_cost(level: number) :: number:
+    if {_level} is 1:
+        return 25000
+    if {_level} is 2:
+        return 75000
+    if {_level} is 3:
+        return 150000
+    if {_level} is 4:
+        return 300000
+    if {_level} is 5:
+        return 650000
+    if {_level} is 6:
+        return 1250000
+    if {_level} is 7:
+        return 2500000
+    if {_level} is 8:
+        return 5000000
+    if {_level} is 9:
+        return 10000000
+    return 25000000
+
+function cemenu_material_amount(level: number) :: number:
+    if {_level} <= 2:
+        return 0
+    if {_level} is 3:
+        return 1
+    if {_level} is 4:
+        return 2
+    if {_level} is 5:
+        return 4
+    if {_level} is 6:
+        return 8
+    if {_level} is 7:
+        return 12
+    if {_level} is 8:
+        return 16
+    if {_level} is 9:
+        return 32
+    return 4
+
+function cemenu_material_name(level: number) :: text:
+    if {_level} <= 2:
+        return "None"
+    if {_level} <= 4:
+        return "Meteor Core"
+    if {_level} is 5:
+        return "Ore Fragment"
+    if {_level} <= 7:
+        return "Bastion Plate Shard"
+    if {_level} <= 9:
+        return "Netherite Scrap"
+    return "Enchanted Golden Apple"
+
+function cemenu_material_item(level: number) :: item:
+    if {_level} <= 2:
+        return air
+    if {_level} <= 4:
+        if {var::meteor_core} is set:
+            return {var::meteor_core}
+        return nether star named "<gradient:#FFB347:#FF3D00>&lMeteor Core</gradient>"
+    if {_level} is 5:
+        if {var::ore_fragment} is set:
+            return {var::ore_fragment}
+        return raw iron named "&6Sooted Ore Fragment"
+    if {_level} <= 7:
+        if {var::plate_shard} is set:
+            return {var::plate_shard}
+        return iron ingot named "<#B9D8FF>Bastion Plate Shard"
+    if {_level} <= 9:
+        return netherite scrap
+    return enchanted golden apple
+
+function cemenu_display_name(id: text) :: text:
+    if {_id} is "lifesteal":
+        return "Lifesteal"
+    if {_id} is "doublestrike":
+        return "Double Strike"
+    if {_id} is "disarm":
+        return "Disarm"
+    if {_id} is "critical":
+        return "Critical"
+    if {_id} is "vampire":
+        return "Vampire"
+    if {_id} is "trench":
+        return "Trench"
+    if {_id} is "tunnel":
+        return "Tunnel"
+    if {_id} is "veinminer":
+        return "Vein Miner"
+    if {_id} is "telepathy":
+        return "Telepathy"
+    if {_id} is "experience":
+        return "Experience"
+    if {_id} is "haste":
+        return "Haste"
+    if {_id} is "overload":
+        return "Overload"
+    if {_id} is "armored":
+        return "Armored"
+    if {_id} is "dodge":
+        return "Dodge"
+    if {_id} is "immortal":
+        return "Immortal"
+    if {_id} is "obsidianshield":
+        return "Obsidianshield"
+    if {_id} is "angelic":
+        return "Angelic"
+    return {_id}
+
+function cemenu_max_level(id: text) :: number:
+    if {_id} is "lifesteal":
+        return 5
+    if {_id} is "doublestrike":
+        return 3
+    if {_id} is "disarm":
+        return 3
+    if {_id} is "critical":
+        return 3
+    if {_id} is "vampire":
+        return 3
+    if {_id} is "trench":
+        return 9
+    if {_id} is "tunnel":
+        return 9
+    if {_id} is "veinminer":
+        return 3
+    if {_id} is "telepathy":
+        return 4
+    if {_id} is "experience":
+        return 5
+    if {_id} is "haste":
+        return 3
+    if {_id} is "overload":
+        return 3
+    if {_id} is "armored":
+        return 4
+    if {_id} is "dodge":
+        return 5
+    if {_id} is "immortal":
+        return 4
+    if {_id} is "obsidianshield":
+        return 1
+    if {_id} is "angelic":
+        return 5
+    return 1
+
+function cemenu_category_icon(category: text) :: item:
+    if {_category} is "sword":
+        return diamond sword named "&c&lSword" with lore "&7Click to view sword enchants."
+    if {_category} is "pickaxe":
+        return diamond pickaxe named "&b&lPickaxe" with lore "&7Click to view pickaxe enchants."
+    return diamond chestplate named "&6&lArmor" with lore "&7Click to view armor enchants."
+
+function cemenu_enchant_icon(id: text, category: text) :: item:
+    set {_name} to cemenu_display_name({_id})
+    set {_max} to cemenu_max_level({_id})
+    return enchanted book named "&d&l%{_name}%" with lore "&7Type: &f%{_category}%" and "&7Max Level: &f%{_max}%" and "" and "&eClick to choose a level."
+
+function cemenu_enchant_from_slot(category: text, slot: number) :: text:
+    if {_category} is "sword":
+        if {_slot} is 10:
+            return "lifesteal"
+        if {_slot} is 11:
+            return "doublestrike"
+        if {_slot} is 12:
+            return "disarm"
+        if {_slot} is 14:
+            return "critical"
+        if {_slot} is 15:
+            return "vampire"
+    if {_category} is "pickaxe":
+        if {_slot} is 10:
+            return "trench"
+        if {_slot} is 11:
+            return "tunnel"
+        if {_slot} is 12:
+            return "veinminer"
+        if {_slot} is 14:
+            return "telepathy"
+        if {_slot} is 15:
+            return "experience"
+        if {_slot} is 16:
+            return "haste"
+    if {_category} is "armor":
+        if {_slot} is 10:
+            return "overload"
+        if {_slot} is 11:
+            return "armored"
+        if {_slot} is 12:
+            return "dodge"
+        if {_slot} is 14:
+            return "immortal"
+        if {_slot} is 15:
+            return "obsidianshield"
+        if {_slot} is 16:
+            return "angelic"
+    return ""
+
+function cemenu_level_from_slot(slot: number) :: number:
+    if {_slot} is 28:
+        return 1
+    if {_slot} is 29:
+        return 2
+    if {_slot} is 30:
+        return 3
+    if {_slot} is 31:
+        return 4
+    if {_slot} is 32:
+        return 5
+    if {_slot} is 33:
+        return 6
+    if {_slot} is 34:
+        return 7
+    if {_slot} is 39:
+        return 8
+    if {_slot} is 40:
+        return 9
+    if {_slot} is 41:
+        return 10
+    return 0
+
+function cemenu_slot_from_level(level: number) :: number:
+    if {_level} is 1:
+        return 28
+    if {_level} is 2:
+        return 29
+    if {_level} is 3:
+        return 30
+    if {_level} is 4:
+        return 31
+    if {_level} is 5:
+        return 32
+    if {_level} is 6:
+        return 33
+    if {_level} is 7:
+        return 34
+    if {_level} is 8:
+        return 39
+    if {_level} is 9:
+        return 40
+    return 41
+
+function cemenu_level_icon(id: text, level: number, p: player) :: item:
+    set {_tokens} to cemenu_token_cost({_level})
+    set {_tokensText} to formatNumbers({_tokens})
+    set {_matAmount} to cemenu_material_amount({_level})
+    set {_matName} to cemenu_material_name({_level})
+    set {_name} to cemenu_display_name({_id})
+    if cemenu_tokens({_p}) >= {_tokens}:
+        set {_status} to "&aEnough Tokens"
+    else:
+        set {_status} to "&cNot Enough Tokens"
+    if {_level} > cemenu_max_level({_id}):
+        set {_max} to cemenu_max_level({_id})
+        return barrier named "&cUnavailable Level %{_level}%" with lore "&7%{_name}% only goes to level &f%{_max}%&7."
+    if {_matAmount} <= 0:
+        return enchanted book named "&d&l%{_name}% &fLevel %{_level}%" with lore "&7Cost: &d%{_tokensText}% Tokens" and "&7Material: &fNone" and "" and "%{_status}%" and "&eClick to apply."
+    return enchanted book named "&d&l%{_name}% &fLevel %{_level}%" with lore "&7Cost: &d%{_tokensText}% Tokens" and "&7Material: &f%{_matAmount}%x %{_matName}%" and "" and "%{_status}%" and "&eClick to apply."
+
+function cemenu_is_valid_item(category: text, i: item) :: boolean:
+    set {_type} to "%type of {_i}%"
+    if {_category} is "sword":
+        if {_type} contains "sword":
+            return true
+        return false
+    if {_category} is "pickaxe":
+        if {_type} contains "pickaxe":
+            return true
+        return false
+    if {_category} is "armor":
+        if {_type} contains "helmet":
+            return true
+        if {_type} contains "chestplate":
+            return true
+        if {_type} contains "leggings":
+            return true
+        if {_type} contains "boots":
+            return true
+        if {_type} contains "elytra":
+            return true
+        return false
+    return false
+
+function cemenu_history_id(p: player, i: item) :: number:
+    set {_uuid} to uuid of {_p}
+    loop {data::customenchantmenu::history::ids::%{_uuid}%::*}:
+        set {_id} to loop-value
+        if {data::customenchantmenu::history::current::%{_uuid}%::%{_id}%} is {_i}:
+            return {_id}
+    return 0
+
+function cemenu_record_history(p: player, before: item, after: item, spent: number):
+    set {_uuid} to uuid of {_p}
+    set {_id} to cemenu_history_id({_p}, {_before})
+    if {_id} <= 0:
+        if {data::customenchantmenu::history::next::%{_uuid}%} is not set:
+            set {data::customenchantmenu::history::next::%{_uuid}%} to 1
+        set {_id} to {data::customenchantmenu::history::next::%{_uuid}%}
+        add 1 to {data::customenchantmenu::history::next::%{_uuid}%}
+        add {_id} to {data::customenchantmenu::history::ids::%{_uuid}%::*}
+        set {data::customenchantmenu::history::original::%{_uuid}%::%{_id}%} to {_before}
+        set {data::customenchantmenu::history::spent::%{_uuid}%::%{_id}%} to 0
+    set {data::customenchantmenu::history::current::%{_uuid}%::%{_id}%} to {_after}
+    add {_spent} to {data::customenchantmenu::history::spent::%{_uuid}%::%{_id}%}
+
+function cemenu_delete_history(p: player, id: number):
+    set {_uuid} to uuid of {_p}
+    remove {_id} from {data::customenchantmenu::history::ids::%{_uuid}%::*}
+    delete {data::customenchantmenu::history::original::%{_uuid}%::%{_id}%}
+    delete {data::customenchantmenu::history::current::%{_uuid}%::%{_id}%}
+    delete {data::customenchantmenu::history::spent::%{_uuid}%::%{_id}%}
+
+function cemenu_can_pay(p: player, level: number) :: boolean:
+    set {_tokens} to cemenu_token_cost({_level})
+    if cemenu_tokens({_p}) < {_tokens}:
+        set {_tokensText} to formatNumbers({_tokens})
+        send "{@cemenu-prefix}&cYou need &d%{_tokensText}% Tokens &cfor that level." to {_p}
+        return false
+    set {_matAmount} to cemenu_material_amount({_level})
+    if {_matAmount} > 0:
+        set {_mat} to cemenu_material_item({_level})
+        set amount of {_mat} to {_matAmount}
+        if {_p}'s inventory does not contain {_mat}:
+            set {_matName} to cemenu_material_name({_level})
+            send "{@cemenu-prefix}&cYou need &f%{_matAmount}%x %{_matName}% &cfor that level." to {_p}
+            return false
+    return true
+
+function cemenu_take_payment(p: player, level: number):
+    set {_tokens} to cemenu_token_cost({_level})
+    remove {_tokens} from {data::tokens::%uuid of {_p}%}
+    set {_matAmount} to cemenu_material_amount({_level})
+    if {_matAmount} > 0:
+        set {_mat} to cemenu_material_item({_level})
+        set amount of {_mat} to {_matAmount}
+        remove {_mat} from {_p}'s inventory
+
+function cemenu_run_ae_command(p: player, cmd: text):
+    set {_held} to {_p}'s tool
+    set {_item} to {data::customenchantmenu::working-item::%uuid of {_p}%}
+    set {_wasOp} to false
+    if {_p} is op:
+        set {_wasOp} to true
+    set {_p}'s tool to {_item}
+    if {_wasOp} is false:
+        op {_p}
+    make {_p} execute command "/%{_cmd}%"
+    if {_wasOp} is false:
+        deop {_p}
+    set {data::customenchantmenu::working-item::%uuid of {_p}%} to {_p}'s tool
+    set {_p}'s tool to {_held}
+
+function cemenu_apply(p: player, category: text, id: text, level: number):
+    set {_uuid} to uuid of {_p}
+    if {_level} > cemenu_max_level({_id}):
+        send "{@cemenu-prefix}&cThat enchant does not have level &f%{_level}%&c." to {_p}
+        stop
+    set {_item} to {data::customenchantmenu::working-item::%{_uuid}%}
+    if {_item} is not set:
+        send "{@cemenu-prefix}&cPut an item in the center slot first." to {_p}
+        stop
+    if {_item} is air:
+        send "{@cemenu-prefix}&cPut an item in the center slot first." to {_p}
+        stop
+    if cemenu_is_valid_item({_category}, {_item}) is false:
+        send "{@cemenu-prefix}&cThat enchant requires a &f%{_category}% &citem." to {_p}
+        stop
+    if cemenu_can_pay({_p}, {_level}) is false:
+        stop
+    set {_tokens} to cemenu_token_cost({_level})
+    set {_before} to {_item}
+    cemenu_run_ae_command({_p}, "ae enchant %{_id}% %{_level}%")
+    set {_after} to {data::customenchantmenu::working-item::%{_uuid}%}
+    if {_after} is {_before}:
+        send "{@cemenu-prefix}&cAdvancedEnchantments did not modify the item. Check enchant ID &f%{_id}%&c." to {_p}
+        stop
+    cemenu_take_payment({_p}, {_level})
+    cemenu_record_history({_p}, {_before}, {_after}, {_tokens})
+    set {_name} to cemenu_display_name({_id})
+    send "{@cemenu-prefix}&aApplied &f%{_name}% %{_level}% &ato your inserted item." to {_p}
+    set {data::customenchantmenu::switching::%{_uuid}%} to true
+    cemenu_open_levels({_p}, {_category}, {_id})
+
+function cemenu_refund(p: player):
+    set {_uuid} to uuid of {_p}
+    set {_item} to {data::customenchantmenu::working-item::%{_uuid}%}
+    if {_item} is not set:
+        send "{@cemenu-prefix}&cPut an item in the center slot first." to {_p}
+        stop
+    if {_item} is air:
+        send "{@cemenu-prefix}&cPut an item in the center slot first." to {_p}
+        stop
+    set {_historyId} to cemenu_history_id({_p}, {_item})
+    if {_historyId} <= 0:
+        send "{@cemenu-prefix}&cThis item has no custom enchant history to refund." to {_p}
+        stop
+    set {_spent} to {data::customenchantmenu::history::spent::%{_uuid}%::%{_historyId}%}
+    set {data::customenchantmenu::working-item::%{_uuid}%} to {data::customenchantmenu::history::original::%{_uuid}%::%{_historyId}%}
+    cemenu_delete_history({_p}, {_historyId})
+    set {_refund} to {_spent} / 2
+    set {_refund} to rounded down {_refund}
+    add {_refund} to {data::tokens::%{_uuid}%}
+    set {_refundText} to formatNumbers({_refund})
+    send "{@cemenu-prefix}&aRestored the original item and refunded &d%{_refundText}% Tokens&a." to {_p}
+    set {data::customenchantmenu::switching::%{_uuid}%} to true
+    cemenu_open_categories({_p})
+
+function cemenu_base_gui(p: player) :: inventory:
+    set {_uuid} to uuid of {_p}
+    set {_tokens} to cemenu_tokens({_p})
+    set {_tokensText} to formatNumbers({_tokens})
+    set {_gui} to a chest inventory with 6 rows named "{@cemenu-name}"
+    loop 54 times:
+        set slot loop-number - 1 of {_gui} to black stained glass pane named " "
+    set slot 4 of {_gui} to nether star named "&dYour Tokens" with lore "&7Balance: &d%{_tokensText}% Tokens"
+    set slot 21 of {_gui} to hopper named "&fInserted Item" with lore "&7Put your item in the empty slot to the right."
+    set slot {@cemenu-item-slot} of {_gui} to {data::customenchantmenu::working-item::%{_uuid}%}
+    if slot {@cemenu-item-slot} of {_gui} is air:
+        set slot {@cemenu-item-slot} of {_gui} to air
+    set slot 23 of {_gui} to barrier named "&cRefund Item" with lore "&7Restores the exact item snapshot" and "&7from before this menu modified it." and "" and "&7Returns &f50%% &7of tracked token spend." and "&cMaterials are not refunded."
+    return {_gui}
+
+function cemenu_open_categories(p: player):
+    set {_uuid} to uuid of {_p}
+    set {_gui} to cemenu_base_gui({_p})
+    set slot 10 of {_gui} to cemenu_category_icon("sword")
+    set slot 13 of {_gui} to cemenu_category_icon("pickaxe")
+    set slot 16 of {_gui} to cemenu_category_icon("armor")
+    set slot 49 of {_gui} to paper named "&7Choose Type" with lore "&71. Choose Sword, Pickaxe, or Armor." and "&72. Choose an enchant." and "&73. Choose the level."
+    set {data::customenchantmenu::page::%{_uuid}%} to "categories"
+    open {_gui} to {_p}
+
+function cemenu_open_enchants(p: player, category: text):
+    set {_uuid} to uuid of {_p}
+    set {_gui} to cemenu_base_gui({_p})
+    set slot 4 of {_gui} to cemenu_category_icon({_category})
+    set slot 49 of {_gui} to arrow named "&cBack" with lore "&7Return to type selection."
+    if {_category} is "sword":
+        set slot 10 of {_gui} to cemenu_enchant_icon("lifesteal", "Sword")
+        set slot 11 of {_gui} to cemenu_enchant_icon("doublestrike", "Sword")
+        set slot 12 of {_gui} to cemenu_enchant_icon("disarm", "Sword")
+        set slot 14 of {_gui} to cemenu_enchant_icon("critical", "Sword")
+        set slot 15 of {_gui} to cemenu_enchant_icon("vampire", "Sword")
+    if {_category} is "pickaxe":
+        set slot 10 of {_gui} to cemenu_enchant_icon("trench", "Pickaxe")
+        set slot 11 of {_gui} to cemenu_enchant_icon("tunnel", "Pickaxe")
+        set slot 12 of {_gui} to cemenu_enchant_icon("veinminer", "Pickaxe")
+        set slot 14 of {_gui} to cemenu_enchant_icon("telepathy", "Pickaxe")
+        set slot 15 of {_gui} to cemenu_enchant_icon("experience", "Pickaxe")
+        set slot 16 of {_gui} to cemenu_enchant_icon("haste", "Pickaxe")
+    if {_category} is "armor":
+        set slot 10 of {_gui} to cemenu_enchant_icon("overload", "Armor")
+        set slot 11 of {_gui} to cemenu_enchant_icon("armored", "Armor")
+        set slot 12 of {_gui} to cemenu_enchant_icon("dodge", "Armor")
+        set slot 14 of {_gui} to cemenu_enchant_icon("immortal", "Armor")
+        set slot 15 of {_gui} to cemenu_enchant_icon("obsidianshield", "Armor")
+        set slot 16 of {_gui} to cemenu_enchant_icon("angelic", "Armor")
+    set {data::customenchantmenu::page::%{_uuid}%} to "enchants"
+    set {data::customenchantmenu::category::%{_uuid}%} to {_category}
+    open {_gui} to {_p}
+
+function cemenu_open_levels(p: player, category: text, id: text):
+    set {_uuid} to uuid of {_p}
+    set {_gui} to cemenu_base_gui({_p})
+    set {_name} to cemenu_display_name({_id})
+    set slot 4 of {_gui} to enchanted book named "&d&l%{_name}%" with lore "&7Type: &f%{_category}%" and "&7Choose a level below."
+    loop 10 times:
+        set {_level} to loop-number
+        set {_slot} to cemenu_slot_from_level({_level})
+        set slot {_slot} of {_gui} to cemenu_level_icon({_id}, {_level}, {_p})
+    set slot 49 of {_gui} to arrow named "&cBack" with lore "&7Return to enchant selection."
+    set {data::customenchantmenu::page::%{_uuid}%} to "levels"
+    set {data::customenchantmenu::category::%{_uuid}%} to {_category}
+    set {data::customenchantmenu::enchant::%{_uuid}%} to {_id}
+    open {_gui} to {_p}
+
+function cemenu_save_item(p: player, inv: inventory):
+    set {_uuid} to uuid of {_p}
+    set {data::customenchantmenu::working-item::%{_uuid}%} to slot {@cemenu-item-slot} of {_inv}
+    if {data::customenchantmenu::working-item::%{_uuid}%} is air:
+        delete {data::customenchantmenu::working-item::%{_uuid}%}
+
+function cemenu_return_item(p: player):
+    set {_uuid} to uuid of {_p}
+    if {data::customenchantmenu::working-item::%{_uuid}%} is set:
+        give {data::customenchantmenu::working-item::%{_uuid}%} to {_p}
+        delete {data::customenchantmenu::working-item::%{_uuid}%}
+
+command /enchantmenu:
+    aliases: /emenu, /enchantsmenu
+    trigger:
+        cemenu_open_categories(player)
+
+on inventory click:
+    set {_uuid} to uuid of player
+    if {data::customenchantmenu::page::%{_uuid}%} is not set:
+        stop
+    set {_rawSlot} to raw index of event-slot
+    if {_rawSlot} < 0:
+        stop
+    if {_rawSlot} > 53:
+        set {_clickText} to "%click type%"
+        if {_clickText} contains "SHIFT":
+            cancel event
+        if {_clickText} contains "shift":
+            cancel event
+        stop
+    if {_rawSlot} is {@cemenu-item-slot}:
+        stop
+    cancel event
+    if {_rawSlot} is 23:
+        cemenu_save_item(player, event-inventory)
+        cemenu_refund(player)
+        stop
+    set {_page} to {data::customenchantmenu::page::%{_uuid}%}
+    if {_page} is "categories":
+        if {_rawSlot} is 10:
+            cemenu_save_item(player, event-inventory)
+            set {data::customenchantmenu::switching::%{_uuid}%} to true
+            cemenu_open_enchants(player, "sword")
+            stop
+        if {_rawSlot} is 13:
+            cemenu_save_item(player, event-inventory)
+            set {data::customenchantmenu::switching::%{_uuid}%} to true
+            cemenu_open_enchants(player, "pickaxe")
+            stop
+        if {_rawSlot} is 16:
+            cemenu_save_item(player, event-inventory)
+            set {data::customenchantmenu::switching::%{_uuid}%} to true
+            cemenu_open_enchants(player, "armor")
+            stop
+    if {_page} is "enchants":
+        if {_rawSlot} is 49:
+            cemenu_save_item(player, event-inventory)
+            set {data::customenchantmenu::switching::%{_uuid}%} to true
+            cemenu_open_categories(player)
+            stop
+        set {_category} to {data::customenchantmenu::category::%{_uuid}%}
+        set {_id} to cemenu_enchant_from_slot({_category}, {_rawSlot})
+        if {_id} is not "":
+            cemenu_save_item(player, event-inventory)
+            set {data::customenchantmenu::switching::%{_uuid}%} to true
+            cemenu_open_levels(player, {_category}, {_id})
+            stop
+    if {_page} is "levels":
+        if {_rawSlot} is 49:
+            cemenu_save_item(player, event-inventory)
+            set {data::customenchantmenu::switching::%{_uuid}%} to true
+            cemenu_open_enchants(player, {data::customenchantmenu::category::%{_uuid}%})
+            stop
+        set {_level} to cemenu_level_from_slot({_rawSlot})
+        if {_level} > 0:
+            cemenu_save_item(player, event-inventory)
+            cemenu_apply(player, {data::customenchantmenu::category::%{_uuid}%}, {data::customenchantmenu::enchant::%{_uuid}%}, {_level})
+
+on inventory drag:
+    if {data::customenchantmenu::page::%uuid of player%} is set:
+        cancel event
+
+on inventory close:
+    if {data::customenchantmenu::page::%uuid of player%} is not set:
+        stop
+    if {data::customenchantmenu::switching::%uuid of player%} is set:
+        delete {data::customenchantmenu::switching::%uuid of player%}
+        stop
+    cemenu_save_item(player, event-inventory)
+    cemenu_return_item(player)
+    delete {data::customenchantmenu::page::%uuid of player%}
+    delete {data::customenchantmenu::category::%uuid of player%}
+    delete {data::customenchantmenu::enchant::%uuid of player%}
+
+on quit:
+    cemenu_return_item(player)
+    delete {data::customenchantmenu::page::%uuid of player%}
+    delete {data::customenchantmenu::switching::%uuid of player%}
+    delete {data::customenchantmenu::category::%uuid of player%}
+    delete {data::customenchantmenu::enchant::%uuid of player%}

@@ -1,0 +1,12 @@
+function CompressOre(ore: item type, newOre: item type, p: player):
+    if {_p} is not online:
+        stop
+
+    if name of {_ore} is not set:
+        set {_ore} to plain {_ore}
+    set {_amount} to amount of {_ore} in {_p}'s inventory
+
+    {_amount} >= 64
+    set {_num} to floor({_amount} / 64)
+    remove ({_num} * 64) of {_ore} from {_p}'s inventory
+    give {_num} of {_newOre} to {_p}

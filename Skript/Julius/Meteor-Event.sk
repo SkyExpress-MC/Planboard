@@ -1,0 +1,326 @@
+# SkyExpress Meteor Events
+# Random server-wide mining event with configured drop spots per dimension.
+
+options:
+    meteor-prefix: &8[&6&lMeteor&8] &7
+    meteor-duration-minutes: 30
+    meteor-currency-name: Tokens
+
+function meteor_tokens_add(p: player, amount: number):
+    if {data::tokens::%uuid of {_p}%} is not set:
+        set {data::tokens::%uuid of {_p}%} to 0
+    add {_amount} to {data::tokens::%uuid of {_p}%}
+
+function meteor_offset(base: location, x: number, y: number, z: number) :: location:
+    set {_l} to {_base}
+    add {_x} to x-coordinate of {_l}
+    add {_y} to y-coordinate of {_l}
+    add {_z} to z-coordinate of {_l}
+    return {_l}
+
+function meteor_place_block(l: location, b: itemtype):
+    set {_key} to "%{_l}%"
+    set block at {_l} to {_b}
+    set {meteor.block::%{_key}%} to true
+    add {_l} to {meteor.blocks::*}
+
+function meteor_place_core(l: location):
+    set block at {_l} to barrel
+    set {meteor.core-location} to {_l}
+    if {var::meteor_core} is set:
+        set slot 13 of inventory of block at {_l} to {var::meteor_core}
+    else:
+        set slot 13 of inventory of block at {_l} to nether star named "&6&lMETEOR CORE" with lore "&8Ancient cosmic fragment" and "" and "&7A burning shard pulled from" and "&7the heart of a fallen meteor." and "" and "&6&lRIGHT CLICK &fto claim tokens" and "&8Chances:" and "&e500 Tokens &8- &745%%" and "&e1,000 Tokens &8- &725%%" and "&e2,000 Tokens &8- &715%%" and "&65,000 Tokens &8- &710%%" and "&610,000 Tokens &8- &74%%" and "&615,000 Tokens &8- &71%%"
+
+function meteor_clear():
+    loop {meteor.blocks::*}:
+        set {_key} to "%loop-value%"
+        if {meteor.block::%{_key}%} is set:
+            set block at loop-value to air
+    if {meteor.core-location} is set:
+        set block at {meteor.core-location} to air
+    delete {meteor.blocks::*}
+    delete {meteor.block::*}
+    delete {meteor.core-location}
+
+function meteor_build(base: location):
+    meteor_clear()
+
+    set {_l} to meteor_offset({_base}, 0, 0, 0)
+    meteor_place_block({_l}, basalt)
+    set {_l} to meteor_offset({_base}, 1, 0, 0)
+    meteor_place_block({_l}, basalt)
+    set {_l} to meteor_offset({_base}, -2, 0, 0)
+    meteor_place_block({_l}, basalt)
+    set {_l} to meteor_offset({_base}, -1, 0, 0)
+    meteor_place_block({_l}, blackstone)
+    set {_l} to meteor_offset({_base}, 0, 0, 2)
+    meteor_place_block({_l}, basalt)
+    set {_l} to meteor_offset({_base}, 0, 0, 1)
+    meteor_place_block({_l}, blackstone)
+    set {_l} to meteor_offset({_base}, 0, 0, -2)
+    meteor_place_block({_l}, basalt)
+    set {_l} to meteor_offset({_base}, 0, 0, -1)
+    meteor_place_block({_l}, blackstone)
+    set {_l} to meteor_offset({_base}, 1, 0, 1)
+    meteor_place_block({_l}, obsidian)
+    set {_l} to meteor_offset({_base}, 1, 0, -1)
+    meteor_place_block({_l}, obsidian)
+    set {_l} to meteor_offset({_base}, -1, 0, 1)
+    meteor_place_block({_l}, obsidian)
+    set {_l} to meteor_offset({_base}, -1, 0, -1)
+    meteor_place_block({_l}, obsidian)
+
+    set {_l} to meteor_offset({_base}, 0, 1, 0)
+    meteor_place_core({_l})
+    set {_l} to meteor_offset({_base}, 1, 1, 0)
+    meteor_place_block({_l}, crying obsidian)
+    set {_l} to meteor_offset({_base}, -1, 1, 0)
+    meteor_place_block({_l}, obsidian)
+    set {_l} to meteor_offset({_base}, 0, 1, 1)
+    meteor_place_block({_l}, crying obsidian)
+    set {_l} to meteor_offset({_base}, 0, 1, -1)
+    meteor_place_block({_l}, obsidian)
+    set {_l} to meteor_offset({_base}, 1, 1, 1)
+    meteor_place_block({_l}, magma block)
+    set {_l} to meteor_offset({_base}, 1, 1, -1)
+    meteor_place_block({_l}, blackstone)
+    set {_l} to meteor_offset({_base}, -1, 1, 1)
+    meteor_place_block({_l}, blackstone)
+    set {_l} to meteor_offset({_base}, -1, 1, -1)
+    meteor_place_block({_l}, magma block)
+    set {_l} to meteor_offset({_base}, 2, 1, 0)
+    meteor_place_block({_l}, magma block)
+    set {_l} to meteor_offset({_base}, -2, 1, 0)
+    meteor_place_block({_l}, blackstone)
+
+    set {_l} to meteor_offset({_base}, 0, 2, 0)
+    meteor_place_block({_l}, ancient debris)
+    set {_l} to meteor_offset({_base}, 1, 2, 0)
+    meteor_place_block({_l}, deepslate diamond ore)
+    set {_l} to meteor_offset({_base}, -1, 2, 0)
+    meteor_place_block({_l}, deepslate emerald ore)
+    set {_l} to meteor_offset({_base}, 0, 2, 1)
+    meteor_place_block({_l}, deepslate gold ore)
+    set {_l} to meteor_offset({_base}, 0, 2, -1)
+    meteor_place_block({_l}, basalt)
+
+    set {_l} to meteor_offset({_base}, 0, 3, 0)
+    meteor_place_block({_l}, magma block)
+
+function meteor_list_spawns(p: player):
+    send "&8&m----------&r <gradient:#FFB347:#5A1A00>&lMeteor Spawns</gradient> &8&m----------" to {_p}
+    if size of {meteor.spawn-worlds::*} < 1:
+        send "{@meteor-prefix}&7No drop points are configured yet." to {_p}
+        stop
+
+    loop {meteor.spawn-worlds::*}:
+        set {_worldName} to loop-index
+        set {_count} to size of {meteor.spawn::%{_worldName}%::*}
+        send "{@meteor-prefix}&f%{_worldName}% &7- &a%{_count}%&7/2 spots" to {_p}
+        loop {meteor.spawn::%{_worldName}%::*}:
+            set {_loc} to loop-value-2
+            send "{@meteor-prefix}&8- &f%{_loc}%" to {_p}
+
+function meteor_reward(p: player):
+    set {_tokens} to random integer between 6 and 18
+    meteor_tokens_add({_p}, {_tokens})
+    set {_tokensText} to formatNumbers({_tokens})
+    send "{@meteor-prefix}&aYou mined meteor rock and found &f%{_tokensText}% {@meteor-currency-name}&a." to {_p}
+
+    set {_roll} to random integer between 1 and 100
+    if {_roll} <= 8:
+        give 1 diamond to {_p}
+    else if {_roll} <= 14:
+        give 1 emerald to {_p}
+    else if {_roll} <= 17:
+        give 1 netherite scrap to {_p}
+    else if {_roll} <= 21:
+        if {var::ore_fragment} is set:
+            give 1 of {var::ore_fragment} to {_p}
+            send "{@meteor-prefix}&dA rare Ore Fragment fell out of the meteor." to {_p}
+
+function meteor_end(reason: text):
+    if {meteor.active} is not set:
+        stop
+
+    meteor_clear()
+    delete {meteor.active}
+    delete {meteor.active-minutes}
+    delete {meteor.location}
+    delete {meteor.mined::*}
+    set {meteor.next-start-minutes} to 60
+
+    if {_reason} is set:
+        broadcast "{@meteor-prefix}%{_reason}%"
+
+function meteor_start():
+    if {meteor.active} is set:
+        stop
+
+    delete {_worlds::*}
+    loop {meteor.spawn-worlds::*}:
+        if size of {meteor.spawn::%loop-index%::*} >= 2:
+            add loop-index to {_worlds::*}
+
+    if size of {_worlds::*} < 1:
+        broadcast "{@meteor-prefix}&cNo Meteor drop points are configured. Add 2 spots in at least one dimension first."
+        stop
+
+    set {_worldName} to random element out of {_worlds::*}
+    set {_spot} to random element out of {meteor.spawn::%{_worldName}%::*}
+    if {_spot} is not set:
+        stop
+
+    set {meteor.active} to true
+    set {meteor.active-minutes} to {@meteor-duration-minutes}
+    set {meteor.location} to {_spot}
+    meteor_build({_spot})
+
+    broadcast ""
+    broadcast "{@meteor-prefix}<gradient:#FFB347:#5A1A00>&lA METEOR HAS CRASHED!</gradient>"
+    broadcast "{@meteor-prefix}&7Mine through it together for rewards."
+    broadcast "{@meteor-prefix}&7Crash location: &f%{meteor.location}%"
+    broadcast ""
+
+function meteor_status(p: player):
+    if {meteor.active} is not set:
+        send "{@meteor-prefix}&cNo meteor is active." to {_p}
+        stop
+
+    send "&8&m----------&r <gradient:#FFB347:#5A1A00>&lMeteor Event</gradient> &8&m----------" to {_p}
+    send "&7Location: &f%{meteor.location}%" to {_p}
+    send "&7Blocks left: &c%size of {meteor.blocks::*}%" to {_p}
+    send "&7Despawn: &f%{meteor.active-minutes}% minutes" to {_p}
+    send "&8&m--------------------------------" to {_p}
+
+function meteor_help(p: player):
+    send "&8&m----------&r <gradient:#FFB347:#5A1A00>&lMeteor Commands</gradient> &8&m----------" to {_p}
+    send "{@meteor-prefix}&f/meteor &8- &7Show this command list." to {_p}
+    send "{@meteor-prefix}&f/meteor status &8- &7Show the active meteor." to {_p}
+    if {_p} has permission "skyexpress.meteor.admin":
+        send "{@meteor-prefix}&f/meteor start &8- &7Force start an event." to {_p}
+        send "{@meteor-prefix}&f/meteor stop &8- &7Stop the active event." to {_p}
+        send "{@meteor-prefix}&f/meteor setspawn &8- &7Add a drop spot." to {_p}
+        send "{@meteor-prefix}&f/meteor spawns &8- &7List configured drop spots." to {_p}
+        send "{@meteor-prefix}&f/meteor clearspawns &8- &7Clear all drop spots." to {_p}
+    send "&8&m--------------------------------" to {_p}
+
+every 1 minute:
+    if {meteor.active} is set:
+        remove 1 from {meteor.active-minutes}
+        if {meteor.active-minutes} <= 0:
+            meteor_end("&7The meteor cooled down and crumbled away.")
+    else:
+        if {meteor.next-start-minutes} is not set:
+            set {meteor.next-start-minutes} to 60
+
+    if {meteor.next-start-minutes} is set:
+        remove 1 from {meteor.next-start-minutes}
+        if {meteor.next-start-minutes} <= 0:
+            if {meteor.active} is not set:
+                if size of online players > 1:
+                    delete {meteor.next-start-minutes}
+                    meteor_start()
+                else:
+                    set {meteor.next-start-minutes} to 1
+
+on break:
+    if {meteor.active} is not set:
+        stop
+
+    set {_key} to "%location of event-block%"
+    if {meteor.block::%{_key}%} is not set:
+        stop
+
+    cancel event
+    cancel drops
+    delete {meteor.block::%{_key}%}
+    remove location of event-block from {meteor.blocks::*}
+    add 1 to {meteor.mined::%uuid of player%}
+
+    set block at location of event-block to air
+    meteor_reward(player)
+
+    if size of {meteor.blocks::*} <= 0:
+        meteor_end("&aThe meteor was fully mined out.")
+
+on inventory drag:
+    if {meteor.active} is not set:
+        stop
+    if {meteor.core-location} is not set:
+        stop
+    if event-inventory is the inventory of block at {meteor.core-location}:
+        cancel event
+
+on inventory close:
+    if {meteor.active} is not set:
+        stop
+    if {meteor.core-location} is not set:
+        stop
+    if event-inventory is the inventory of block at {meteor.core-location}:
+        if slot 13 of event-inventory is air:
+            meteor_end("&aThe Meteor Core was claimed and the meteor collapsed.")
+
+on inventory click:
+    if {meteor.active} is not set:
+        stop
+    if {meteor.core-location} is not set:
+        stop
+    if clicked inventory is not the inventory of block at {meteor.core-location}:
+        stop
+    if raw index of event-slot is 13:
+        wait 1 tick
+        if {meteor.core-location} is set:
+            if slot 13 of inventory of block at {meteor.core-location} is air:
+                meteor_end("&aThe Meteor Core was claimed and the meteor collapsed.")
+
+command /meteor [<text>]:
+    usage: /meteor <status|start|stop|setspawn|spawns|clearspawns>
+    trigger:
+        if arg-1 is not set:
+            meteor_help(player)
+            stop
+
+        if arg-1 is "help":
+            meteor_help(player)
+            stop
+
+        if arg-1 is "status":
+            meteor_status(player)
+            stop
+
+        if player has permission "skyexpress.meteor.admin":
+            if arg-1 is "start":
+                if {meteor.active} is set:
+                    send "{@meteor-prefix}&cA meteor is already active." to player
+                    stop
+                meteor_start()
+                stop
+
+            if arg-1 is "stop":
+                meteor_end("&7The meteor was removed by staff.")
+                stop
+
+            if arg-1 is "setspawn":
+                set {_worldName} to name of world of player
+                if size of {meteor.spawn::%{_worldName}%::*} >= 2:
+                    send "{@meteor-prefix}&cThat dimension already has 2 Meteor spots." to player
+                    stop
+                add location of player to {meteor.spawn::%{_worldName}%::*}
+                set {meteor.spawn-worlds::%{_worldName}%} to true
+                send "{@meteor-prefix}&aAdded this location for &f%{_worldName}%&a. Use 2 spots per dimension." to player
+                stop
+
+            if arg-1 is "spawns":
+                meteor_list_spawns(player)
+                stop
+
+            if arg-1 is "clearspawns":
+                delete {meteor.spawn::*}
+                delete {meteor.spawn-worlds::*}
+                delete {meteor.next-start-minutes}
+                send "{@meteor-prefix}&aCleared all Meteor drop points." to player
+                stop
+
+        send "{@meteor-prefix}&cUse &f/meteor&c or &f/meteor status&c." to player

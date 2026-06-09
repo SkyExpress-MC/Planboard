@@ -1,0 +1,46 @@
+###############################################
+# Made by ItzRepsac_
+# Requires: Skript
+# Make smallcaps text from a minimessage colored text
+################################################
+
+function SmallFont(input: text) :: text:
+    set {_parts::*} to {_input} split at "<"
+    set {_result} to ""
+
+    set {_letters::*} to "a:ᴀ","b:ʙ","c:ᴄ","d:ᴅ","e:ᴇ","f:ꜰ","g:ɢ","h:ʜ","i:ɪ","j:ᴊ", "k:ᴋ","l:ʟ","m:ᴍ","n:ɴ","o:ᴏ","p:ᴘ","q:ǫ","r:ʀ","s:s", "t:ᴛ","u:ᴜ","v:ᴠ","w:ᴡ","x:x","y:ʏ" and "z:ᴢ"
+
+    loop {_parts::*}:
+        if {_loopCycle} is not 1:
+            set {_segment} to loop-value
+            loop {_letters::*}:
+                set {_in} to first element of (loop-value-2 split at ":")
+                set {_out} to last element of (loop-value-2 split at ":")
+                replace all {_in} in {_segment} with {_out}
+            add {_segment} to {_result}
+            add 1 to {_loopCycle}
+        else:
+            if loop-value contains ">":
+                set {_hexCode} to "<" + first element of (loop-value split at ">") + ">"
+                set {_text} to last element of (loop-value split at ">")
+
+                # Append tag unchanged
+                add {_hexCode} to {_result}
+
+                # Convert only text AFTER the tag
+                loop {_letters::*}:
+                    set {_in} to first element of (loop-value-2 split at ":")
+                    set {_out} to last element of (loop-value-2 split at ":")
+                    replace all {_in} in {_text} with {_out}
+
+                add {_text} to {_result}
+            else:
+                # Lone '<' → treat as normal text
+                set {_segment} to "<" + loop-value
+                loop {_letters::*}:
+                    set {_in} to first element of (loop-value-2 split at ":")
+                    set {_out} to last element of (loop-value-2 split at ":")
+                    replace all {_in} in {_segment} with {_out}
+                add {_segment} to {_result}
+    delete {_loopCycle}
+    return {_result}

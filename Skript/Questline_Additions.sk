@@ -1,0 +1,100 @@
+options:
+    myst: &5ᴍʏꜱᴛᴇʀɪᴏᴜꜱ ᴛʀᴀᴠᴇʟʟᴇʀ &7⪼
+
+command /darkness <player>:
+    executable by: console
+    trigger:
+        apply blindness 10 to arg-1 for 10 seconds
+
+command /sound <string> <player>:
+    executable by: console
+    trigger:
+        set {_sound} to arg-1
+        play sound "%{_sound}%" to arg-2
+        
+command /startquest <string> <player>:
+    executable by: console
+    trigger:
+        set {_quest} to arg-1
+        set {_p} to arg-2
+        make console execute command "/quest start %{_p}% %{_quest}%"
+
+
+command /mythicshop <string> <player>:
+    trigger:
+        set {_shop} to arg-1
+        set {_player} to arg-2
+        set {_world} to world of {_player}
+        make console execute command "shopkeeper remote %{_world}%_%{_shop}% %{_player}%"
+
+on join:
+    while player is online:
+        set {_uuid} to uuid of player
+        set {_has} to false
+        loop all items in player's inventory:
+            if loop-item = {var::pickaxe::stone5}:
+                set {_has} to true
+                stop loop
+        if {_has} is true:
+            if {pickaxe::seen::%{_uuid}%} is not set:
+                set {pickaxe::seen::%{_uuid}%} to true
+                play sound "minecraft:entity.villager.ambient" to player
+                send " "
+                send "&6Lost Dwarf &7⪼ Hey! You there, come visit me in the Marketplace." to player
+                wait 2 seconds
+                play sound "minecraft:entity.villager.ambient" to player
+                send "&6Lost Dwarf &7⪼ I think maybe we can help eachother!"
+                send " "
+        else:
+            delete {pickaxe::seen::%{_uuid}%}
+        wait 1 second
+
+command /shillingcheck <player>:
+    executable by: console
+    trigger:
+        if {pickaxe::seen::%arg-1%} is not set:
+            play sound "minecraft:entity.villager.ambient" to arg-1        
+            send "&6Lost Dwarf &7⪼ &fHoldon there human!" to arg-1
+            wait 2 seconds
+            play sound "minecraft:entity.villager.ambient" to arg-1            
+            send "&6Lost Dwarf &7⪼ &fYe’ll need a Stone Pickaxe V before ye can lay eyes on me wares." to arg-1
+        else:
+            make console execute command "/shopkeeper remote Shilling-Shop %arg-1%" 
+
+command /endcutscene <player>:
+    executable by: console
+    trigger:
+        set {_p} to arg-1
+        apply blindness 10 to {_p} for 28 seconds
+        play sound "entity.enderman.ambient" to {_p}
+        send "{@myst} &fWelcome Traveler. The realm has been awaiting your arrival!" to {_p}
+        wait 3 seconds
+        play sound "entity.enderman.ambient" to {_p}        
+        send "{@myst} &fOur fractured expanse is threatened and your kind has once again been called to traverse the paths between worlds as you once did." to {_p}
+        wait 6 seconds
+        play sound "entity.enderman.ambient" to {_p}         
+        send "{@myst} &fYour journey will not be easy..." to {_p}
+        wait 3 seconds
+        play sound "entity.enderman.ambient" to {_p}         
+        send "{@myst} &fThere are many foes ahead of you as you make your way towards your destiny." to {_p}
+        wait 3 seconds
+        play sound "entity.enderman.ambient" to {_p}        
+        send "{@myst} &f I will do all I can to assist from here beyond the horizon," to {_p}
+        wait 3 seconds
+        play sound "entity.enderman.ambient" to {_p}        
+        send "{@myst} &fone of my people from a distant land has found his way to your world on accident," to {_p}
+        wait 3 seconds
+        play sound "entity.enderman.ambient" to {_p}
+        send "{@myst} &fbut it is an accident we will take advantage of as he knows the path forwards." to {_p}
+        wait 3 seconds
+        play sound "entity.enderman.ambient" to {_p}        
+        send "{@myst} &fHe is a busy man, so begin your journey and when he is ready, he will call upon you." to {_p}
+        wait 3 seconds
+        make console execute command "/quest start %{_p}% first_axe"
+        wait 2 seconds
+        play sound "minecraft:ui.toast.challenge_complete" to {_p}
+        make console execute command "/lp user %{_p}% permission set skyexpress.trail.beta true"
+        make console execute command "/lp user %{_p}% permission set skyexpress.chatcolor.beta true"
+        send "%{prefix}% &aSuccesfully given a &abeta &etrail &a&&e chatcolor&a!" to {_p}
+        send "%{prefix}% &aRun the &e/link &acommand to claim your discord role and see the #beta-feedback channel!" to {_p}
+        send " " to {_p}

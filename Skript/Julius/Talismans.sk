@@ -1,0 +1,282 @@
+
+options:
+    talisman-prefix: &8[&dTalismans&8] &7
+    talisman-gui-name: &8Talisman Forge
+    talisman-health-bonus: 2
+    talisman-damage-bonus: 1.25
+
+
+# ────────────────────────────────────────
+#  ITEM DEFINITIONS
+# ────────────────────────────────────────
+
+function talisman_health_item() :: item:
+    return heart of the sea named "&cHealth Talisman" with lore "&7Keep this in your inventory." and "&7Bonus: &c+2 Hearts"
+
+function talisman_damage_item() :: item:
+    return nether star named "&cDamage Talisman" with lore "&7Keep this in your inventory." and "&7Bonus: &c+0.625 Heart Damage"
+
+function talisman_compressed_emerald_item() :: item:
+    if {var::compressed::emerald} is set:
+        return {var::compressed::emerald}
+    return barrier named "&cMissing Item Variable" with lore "&7Set &f{var::compressed::emerald} &7first."
+
+function talisman_compressed_diamond_item() :: item:
+    if {var::compressed::diamond} is set:
+        return {var::compressed::diamond}
+    return barrier named "&cMissing Item Variable" with lore "&7Set &f{var::compressed::diamond} &7first."
+
+function talisman_ore_fragment_item() :: item:
+    if {var::ore_fragment} is set:
+        return {var::ore_fragment}
+    return barrier named "&cMissing Item Variable" with lore "&7Set &f{var::ore_fragment} &7first."
+
+function talisman_plate_shard_item() :: item:
+    if {var::plate_shard} is set:
+        return {var::plate_shard}
+    return barrier named "&cMissing Item Variable" with lore "&7Set &f{var::plate_shard} &7first."
+
+
+# ────────────────────────────────────────
+#  BONUS APPLICATION  (fully event-driven — no polling loop!)
+#  Called whenever equipped talisman changes, and on join/quit.
+# ────────────────────────────────────────
+
+function talisman_apply_bonus(p: player):
+    set {_uuid} to uuid of {_p}
+    if {data::talisman.equipped::%{_uuid}%} is not set:
+        talisman_remove_bonus({_p})
+        stop
+    if name of {data::talisman.equipped::%{_uuid}%} is "&cHealth Talisman":
+        set {_target} to 10 + {@talisman-health-bonus}
+        if max health of {_p} is not {_target}:
+            set max health of {_p} to {_target}
+        set {data::talisman.health.active::%{_uuid}%} to true
+        stop
+    talisman_remove_bonus({_p})
+
+function talisman_remove_bonus(p: player):
+    set {_uuid} to uuid of {_p}
+    if {data::talisman.health.active::%{_uuid}%} is not set:
+        stop
+    if health of {_p} > 10:
+        set health of {_p} to 10
+    set max health of {_p} to 10
+    delete {data::talisman.health.active::%{_uuid}%}
+
+
+# ────────────────────────────────────────
+#  GUI — RECIPES
+# ────────────────────────────────────────
+
+function talisman_open_recipes(p: player):
+    set {_gui} to a chest inventory with 6 rows named "{@talisman-gui-name} &8- &fRecipes"
+    loop 54 times:
+        set slot loop-number - 1 of {_gui} to black stained glass pane named " "
+    set slot 10 of {_gui} to talisman_health_item()
+    set slot 11 of {_gui} to talisman_compressed_emerald_item()
+    set slot 12 of {_gui} to talisman_ore_fragment_item()
+    set slot 13 of {_gui} to talisman_plate_shard_item()
+    set slot 15 of {_gui} to paper named "&fHealth Talisman Recipe" with lore "&71x Compressed Emerald" and "&71x Ore Fragment" and "&71x Plate Shard" and "" and "&7Gives &c+2 Hearts &7while equipped."
+    set slot 28 of {_gui} to talisman_damage_item()
+    set slot 29 of {_gui} to talisman_compressed_diamond_item()
+    set slot 30 of {_gui} to talisman_ore_fragment_item()
+    set slot 31 of {_gui} to talisman_plate_shard_item()
+    set slot 33 of {_gui} to paper named "&fDamage Talisman Recipe" with lore "&71x Compressed Diamond" and "&71x Ore Fragment" and "&71x Plate Shard" and "" and "&7Gives &c+2 Damage &7while equipped."
+    set slot 49 of {_gui} to anvil named "&aOpen Forge" with lore "&7Click to craft talismans."
+    set {data::talisman.open::%uuid of {_p}%} to "recipes"
+    open {_gui} to {_p}
+
+
+# ────────────────────────────────────────
+#  GUI — FORGE
+# ────────────────────────────────────────
+
+function talisman_open_forge(p: player):
+    set {_gui} to a chest inventory with 6 rows named "{@talisman-gui-name} &8- &fForge"
+    loop 54 times:
+        set slot loop-number - 1 of {_gui} to gray stained glass pane named " "
+    set slot 19 of {_gui} to air
+    set slot 20 of {_gui} to air
+    set slot 21 of {_gui} to air
+    set slot 25 of {_gui} to air
+    set slot 4 of {_gui} to book named "&bRecipes" with lore "&7Click to view talisman recipes."
+    set slot 28 of {_gui} to hopper named "&fIngredient Slot 1" with lore "&7Put the first recipe item above."
+    set slot 29 of {_gui} to hopper named "&fIngredient Slot 2" with lore "&7Put the second recipe item above."
+    set slot 30 of {_gui} to hopper named "&fIngredient Slot 3" with lore "&7Put the third recipe item above."
+    set slot 23 of {_gui} to anvil named "&aForge" with lore "&7Click after adding all 3 ingredients." and "" and "&fHealth Talisman:" and "&71x Compressed Emerald" and "&71x Ore Fragment" and "&71x Plate Shard" and "" and "&fDamage Talisman:" and "&71x Compressed Diamond" and "&71x Ore Fragment" and "&71x Plate Shard"
+    set slot 34 of {_gui} to chest named "&fOutput Slot" with lore "&7Take your talisman from above."
+    set slot 48 of {_gui} to lime stained glass pane named "&aEquipped Talisman" with lore "&7Place 1 talisman in the slot to the right." and "&7Only this slot gives bonuses."
+    set slot 49 of {_gui} to {data::talisman.equipped::%uuid of {_p}%}
+    set {data::talisman.open::%uuid of {_p}%} to "forge"
+    open {_gui} to {_p}
+
+
+# ────────────────────────────────────────
+#  FORGE HELPERS
+# ────────────────────────────────────────
+
+function talisman_save_equipped(p: player, inv: inventory):
+    set {_uuid} to uuid of {_p}
+    if slot 49 of {_inv} is air:
+        delete {data::talisman.equipped::%{_uuid}%}
+    else:
+        set {data::talisman.equipped::%{_uuid}%} to slot 49 of {_inv}
+    talisman_apply_bonus({_p})
+
+function talisman_return_forge_items(p: player, inv: inventory):
+    set {_uuid} to uuid of {_p}
+    if {data::talisman.returning::%{_uuid}%} is set:
+        stop
+    set {data::talisman.returning::%{_uuid}%} to true
+    set {_slots::*} to 19, 20, 21 and 25
+    loop {_slots::*}:
+        set {_item} to slot loop-value of {_inv}
+        if {_item} is not air:
+            give {_item} to {_p}
+            set slot loop-value of {_inv} to air
+    delete {data::talisman.returning::%{_uuid}%}
+
+function talisman_try_forge(p: player, inv: inventory):
+    if slot 25 of {_inv} is not air:
+        send "{@talisman-prefix}&cTake the current output item first." to {_p}
+        stop
+    if {var::compressed::emerald} is not set:
+        send "{@talisman-prefix}&cMissing item variable: &f{var::compressed::emerald}&c." to {_p}
+        stop
+    if {var::compressed::diamond} is not set:
+        send "{@talisman-prefix}&cMissing item variable: &f{var::compressed::diamond}&c." to {_p}
+        stop
+    if {var::ore_fragment} is not set:
+        send "{@talisman-prefix}&cMissing item variable: &f{var::ore_fragment}&c." to {_p}
+        stop
+    if {var::plate_shard} is not set:
+        send "{@talisman-prefix}&cMissing item variable: &f{var::plate_shard}&c." to {_p}
+        stop
+    set {_first}  to slot 19 of {_inv}
+    set {_second} to slot 20 of {_inv}
+    set {_third}  to slot 21 of {_inv}
+    if {_second} is not {var::ore_fragment}:
+        send "{@talisman-prefix}&cInvalid recipe. Check the recipes page." to {_p}
+        stop
+    if {_third} is not {var::plate_shard}:
+        send "{@talisman-prefix}&cInvalid recipe. Check the recipes page." to {_p}
+        stop
+    if {_first} is {var::compressed::emerald}:
+        set slot 19 of {_inv} to air
+        set slot 20 of {_inv} to air
+        set slot 21 of {_inv} to air
+        set slot 25 of {_inv} to talisman_health_item()
+        send "{@talisman-prefix}&aForged a &fHealth Talisman&a." to {_p}
+        stop
+    if {_first} is {var::compressed::diamond}:
+        set slot 19 of {_inv} to air
+        set slot 20 of {_inv} to air
+        set slot 21 of {_inv} to air
+        set slot 25 of {_inv} to talisman_damage_item()
+        send "{@talisman-prefix}&aForged a &fDamage Talisman&a." to {_p}
+        stop
+    send "{@talisman-prefix}&cInvalid recipe. Check the recipes page." to {_p}
+
+
+# ────────────────────────────────────────
+#  HELPER CHECKS
+# ────────────────────────────────────────
+
+function talisman_has_damage(p: player) :: boolean:
+    if {data::talisman.equipped::%uuid of {_p}%} is not set:
+        return false
+    if name of {data::talisman.equipped::%uuid of {_p}%} is "&cDamage Talisman":
+        return true
+    return false
+
+
+# ────────────────────────────────────────
+#  COMMAND
+# ────────────────────────────────────────
+
+command /talismans:
+    aliases: /talisman, /forge
+    trigger:
+        talisman_open_recipes(player)
+
+
+# ────────────────────────────────────────
+#  EVENTS
+# ────────────────────────────────────────
+
+on join:
+    talisman_apply_bonus(player)
+
+on inventory click:
+    set {_uuid} to uuid of player
+    if {data::talisman.open::%{_uuid}%} is not set:
+        stop
+    set {_rawSlot} to raw index of event-slot
+    if {_rawSlot} < 0:
+        stop
+    if {_rawSlot} > 53:
+        if {data::talisman.open::%{_uuid}%} is "recipes":
+            cancel event
+            stop
+        if "%click type%" contains "SHIFT":
+            cancel event
+        stop
+    # ── Recipes GUI ──
+    if {data::talisman.open::%{_uuid}%} is "recipes":
+        cancel event
+        if {_rawSlot} is 49:
+            set {data::talisman.switching::%{_uuid}%} to true
+            talisman_open_forge(player)
+        stop
+    # ── Forge GUI ──
+    if {data::talisman.open::%{_uuid}%} is "forge":
+        if {_rawSlot} is 19:
+            stop
+        if {_rawSlot} is 20:
+            stop
+        if {_rawSlot} is 21:
+            stop
+        if {_rawSlot} is 25:
+            stop
+        if {_rawSlot} is 49:
+            stop
+        cancel event
+        if {_rawSlot} is 4:
+            talisman_save_equipped(player, event-inventory)
+            talisman_return_forge_items(player, event-inventory)
+            set {data::talisman.switching::%{_uuid}%} to true
+            talisman_open_recipes(player)
+            stop
+        if {_rawSlot} is 23:
+            talisman_try_forge(player, event-inventory)
+
+on inventory drag:
+    if {data::talisman.open::%uuid of player%} is not set:
+        stop
+    cancel event
+
+on inventory close:
+    set {_uuid} to uuid of player
+    if {data::talisman.open::%{_uuid}%} is not set:
+        stop
+    if {data::talisman.switching::%{_uuid}%} is set:
+        delete {data::talisman.switching::%{_uuid}%}
+        stop
+    if {data::talisman.open::%{_uuid}%} is "forge":
+        talisman_save_equipped(player, event-inventory)
+        talisman_return_forge_items(player, event-inventory)
+    delete {data::talisman.open::%{_uuid}%}
+
+on quit:
+    set {_uuid} to uuid of player
+    delete {data::talisman.open::%{_uuid}%}
+    delete {data::talisman.switching::%{_uuid}%}
+    delete {data::talisman.returning::%{_uuid}%}
+    talisman_remove_bonus(player)
+
+on damage:
+    if attacker is not a player:
+        stop
+    if talisman_has_damage(attacker) is true:
+        set damage to damage + {@talisman-damage-bonus}

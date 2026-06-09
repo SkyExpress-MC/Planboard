@@ -1,0 +1,97 @@
+on load:
+	set {ItzRepsac} to "&8[&5ItzRepsac_&8] ⪼"
+
+command /hadtomakethiscommandsmaller [<item>]:
+	permission: fuck.this
+	trigger:
+		if {whyTryToReadThis::%player's uuid%} is true:
+			set {whyTryToReadThis::%player's uuid%} to false
+			send "%{ItzRepsac}% &cCya, loser!" to player
+			stop
+		# determine which block to use
+		if arg-1 is set:
+			set {_block} to arg-1
+		else:
+			set {_block} to gold block
+		# sanity check — must be a solid block
+		if {_block} is not a block:
+			send "%{ItzRepsac}% &cThat's not a valid block!" to player
+			stop
+		set {whyTryToReadThis::%player's uuid%} to true
+		send "%{ItzRepsac}% &aGood boii! &7(using &e%{_block}%&7)" to player
+		set {_oldLoc} to location 1 below player
+		set {_idx} to 0
+		set {_stillTicks} to 0
+		while {whyTryToReadThis::%player's uuid%} is true:
+			if player is not online:
+				set {whyTryToReadThis::%player's uuid%} to false
+				exit loop
+			if player is sneaking:
+				set {_underLoc} to location 1 below player
+				if block at {_underLoc} is {_block}:
+					set block at {_underLoc} to air
+					play sound "entity.item.pickup" with volume 0.4 with pitch 0.6 at {_underLoc} for player
+					loop {_locs::*}:
+						if block at {_locs::%loop-index%} is block at {_underLoc}:
+							delete {_locs::%loop-index%}
+							delete {_times::%loop-index%}
+				set {_oldLoc} to location 1 below player
+				set {_stillTicks} to 0
+			else:
+				set {_newLoc} to location 1 below player
+				if block at {_newLoc} is air:
+					add 1 to {_idx}
+					set {_locs::%{_idx}%} to {_newLoc}
+					set {_times::%{_idx}%} to now
+					set block at {_newLoc} to {_block}
+					set {_pitch} to 1.0 + ((mod({_idx}, 8)) * 0.15)
+					play sound "entity.item.pickup" with volume 0.5 with pitch {_pitch} at {_newLoc} for player
+				else if block at {_newLoc} is {_block}:
+					loop {_locs::*}:
+						if block at {_locs::%loop-index%} is block at {_newLoc}:
+							set {_times::%loop-index%} to now
+				set {_vec} to vector from {_oldLoc} to {_newLoc}
+				set y of {_vec} to 0
+				set {_dist} to vector length of {_vec}
+				if {_dist} > 1:
+					set {_steps} to floor({_dist})
+					set vector length of {_vec} to 1
+					loop {_steps} times:
+						set {_stepVec} to {_vec}
+						set vector length of {_stepVec} to loop-value
+						set {_fillLoc} to {_oldLoc} ~ {_stepVec}
+						if block at {_fillLoc} is air:
+							add 1 to {_idx}
+							set {_locs::%{_idx}%} to {_fillLoc}
+							set {_times::%{_idx}%} to now
+							set block at {_fillLoc} to {_block}
+							set {_pitch} to 1.0 + ((mod({_idx}, 8)) * 0.15)
+							play sound "entity.item.pickup" with volume 0.5 with pitch {_pitch} at {_fillLoc} for player
+				if {_dist} < 0.05:
+					add 1 to {_stillTicks}
+				else:
+					set {_stillTicks} to 0
+				if {_stillTicks} > 5:
+					if block at {_newLoc} is {_block}:
+						set {_blockLoc} to location of block at {_newLoc}
+						set {_cx} to (x-coord of {_blockLoc}) + 0.25
+						set {_cy} to y-coord of {_blockLoc} - 1
+						set {_cz} to (z-coord of {_blockLoc}) + 0.25
+						set {_exhaust} to location({_cx}, {_cy} - 0.1, {_cz}, world of {_blockLoc})
+						make 2 of flame at {_exhaust} with offset vector(0.1, 0, 0.1) with extra 0.08 for all players
+						make 1 of small_flame at {_exhaust} with offset vector(0.05, 0, 0.05) with extra 0.05 for all players
+						if mod({_stillTicks}, 2) is 0:
+							set {_smokeLoc} to location({_cx}, {_cy} - 0.5, {_cz}, world of {_blockLoc})
+							make 1 of large_smoke at {_smokeLoc} with offset vector(0.15, 0.1, 0.15) with extra 0.02 for all players
+						if mod({_stillTicks}, 6) is 0:
+							make 1 of lava at {_exhaust} with extra 0 for all players
+				set {_oldLoc} to {_newLoc}
+			loop {_times::*}:
+				set {_k} to loop-index
+				if difference between {_times::%{_k}%} and now is greater than 0.5 seconds:
+					set block at {_locs::%{_k}%} to air
+					delete {_locs::%{_k}%}
+					delete {_times::%{_k}%}
+			wait 1 tick
+		loop {_locs::*}:
+			set block at loop-value to air

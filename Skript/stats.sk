@@ -1,0 +1,84 @@
+# ============================
+#       /stats Command
+# ============================
+
+command /stats:
+	description: View your statistics
+	executable by: players
+	trigger:
+		openStatsGUI(player)
+
+# GUI layout (0-indexed slots, 5-row chest):
+#
+#  0  1  2  3  4  5  6  7  8    (row 0 - border)
+#  9 [P][L] 12 13 14[B][M]17    (row 1)
+# 18 19 20 21[H]23 24 25 26    (row 2 - head center at slot 22)
+# 27[K][D]30 31 32[R][V]35    (row 3)
+# 36 37 38 39 40 41 42 43 44    (row 4 - border)
+#
+#  P=Prestige(10)  L=Level(11)  B=Balance(15)  M=Mined(16)
+#  K=Kills(28)     D=Deaths(29) R=KDR(33)      V=PVP(34)
+#  H=Head(22)
+
+# Returns an item with a title and a single info line, padded with blank lines
+function statItem(mat: item, title: text, info: text) :: item:
+	set name of {_mat} to {_title}
+	set lore of {_mat} to "", {_info}, ""
+	return {_mat}
+
+# Fills all 45 slots of a 5-row chest with black glass pane borders
+function fillBorder(inv: inventory):
+	set {_glass} to black stained glass pane named " "
+	loop 45 times:
+		set slot (loop-number - 1) of {_inv} to {_glass}
+
+# Returns the PVP item based on the player's current PVP state
+# Change "is true" to "is 1" if PVP is stored as a number
+function pvpItem(p: player) :: item:
+	if {data::pvp::%{_p}%} is true:
+		return statItem(lime wool, "&a&lPVP &a[ON]", "&7Status: &aEnabled")
+	return statItem(red wool, "&c&lPVP &c[OFF]", "&7Status: &cDisabled")
+
+function openStatsGUI(p: player):
+	set {_prestige} to {data::prestige::%{_p}%} ? 0
+	set {_level} to {data::level::%{_p}%} ? 0
+	set {_exp} to {data::exp::%{_p}%} ? 0
+	set {_kills} to {data::kills::%{_p}%} ? 0
+	set {_deaths} to {data::deaths::%{_p}%} ? 0
+	set {_balance} to {data::balance::%{_p}%} ? 0
+	set {_blocks} to {data::blocks_mined::%{_p}%} ? 0
+	set {_nextLevel} to {_level} + 1
+
+	if {_deaths} > 0:
+		set {_kdr} to (round({_kills} / {_deaths} * 100)) / 100
+	else:
+		set {_kdr} to {_kills}
+
+	set {_inv} to chest inventory with 5 rows named "&8» &6Stats &8«"
+	fillBorder({_inv})
+
+	# Player head in the center - slot 22
+	# If skull of {_p} doesn't work, try: skull item of {_p}
+	set {_head} to skull of {_p}
+	set name of {_head} to "&6&l%{_p}%"
+	set lore of {_head} to "&8» &7Your statistics"
+	set slot 22 of {_inv} to {_head}
+
+	# Level has 3 data lines so it's built inline
+	set {_levelItem} to experience bottle named "&a&lLevel & EXP"
+	set lore of {_levelItem} to "", "&7Level: &e%{_level}%", "&7Next: &e%{_nextLevel}%", "&7EXP: &e%{_exp}%", ""
+
+	set slot 10 of {_inv} to statItem(nether star,      "&6&lPrestige",    "&7Prestige level: &e✦ %{_prestige}%")
+	set slot 11 of {_inv} to {_levelItem}
+	set slot 15 of {_inv} to statItem(gold ingot,       "&6&lBalance",     "&7Balance: &e$%formatNumbers({_balance})%")
+	set slot 16 of {_inv} to statItem(diamond pickaxe,  "&b&lBlocks Mined","&7Mined: &e%formatNumbers({_blocks})% blocks")
+	set slot 28 of {_inv} to statItem(diamond sword,    "&c&lKills",       "&7Total kills: &e%formatNumbers({_kills})%")
+	set slot 29 of {_inv} to statItem(bone,             "&7&lDeaths",      "&7Total deaths: &e%formatNumbers({_deaths})%")
+	set slot 33 of {_inv} to statItem(paper,            "&f&lK/D Ratio",   "&7Kill/Death ratio: &e%{_kdr}%")
+	set slot 34 of {_inv} to pvpItem({_p})
+
+	open {_inv} to {_p}
+
+on inventory click:
+	if name of event-inventory is "&8» &6Stats &8«":
+		cancel event

@@ -1,0 +1,103 @@
+command /help [<text>] [<text>]:
+    trigger:
+        # ─── Landing page ───
+        if arg-1 is not set:
+            sendTitle(player)
+            send mini message from "  <gray>» <click:run_command:'/help players'><hover:show_text:'<gray>Click to open player commands'><yellow>[Player Commands]</yellow></hover></click>" to player
+            if player has permission "sk.content-team.help":
+                send mini message from "  <gray>» <click:run_command:'/help content-team'><hover:show_text:'<gray>Click to open content-team tools'><yellow>[Content Team]</yellow></hover></click>" to player
+            send "" to player
+            send "&7&oClick a category to view its commands." to player
+            send "&8&m                                                            " to player
+            send "" to player
+            stop
+
+        # ─── Players menu ───
+        if arg-1 is "players":
+            if arg-2 is not set:
+                sendTitle(player)
+                send "&8&m───────&r &7&lPlayer Commands &8&m────────" to player
+                send mini message from "  <dark_gray>» <click:run_command:'/help players shops'><hover:show_text:'<gray>Click to learn about shops'><gold><b>[Shops]</b></gold></hover></click> <gray>- How to use NPC shops" to player
+                send mini message from "  <dark_gray>» <click:run_command:'/help players vaults'><hover:show_text:'<gray>Click to learn about vaults'><gold><b>[Vaults]</b></gold></hover></click> <gray>- Personal storage" to player
+                send mini message from "  <dark_gray>» <click:run_command:'/help players trails'><hover:show_text:'<gray>Click to learn about trails'><gold><b>[Trails]</b></gold></hover></click> <gray>- Cosmetic particle trails" to player
+                send mini message from "  <dark_gray>» <click:run_command:'/help players chatcolor'><hover:show_text:'<gray>Click to learn about chat colors'><gold><b>[Chat Color]</b></gold></hover></click> <gray>- Customize chat color" to player
+                send mini message from "  <dark_gray>» <click:run_command:'/help players gameplay'><hover:show_text:'<gray>Click to learn about gameplay'><gold><b>[Gameplay]</b></gold></hover></click> <gray>- Core gameplay basics" to player
+                send "" to player
+                send "&7&oClick a topic to read its guide." to player
+                send "&8&m                                                  " to player
+                send "" to player
+                stop
+
+            # Player subcategories
+            arg-2 is "shops":
+                send "&7Right-click a shop NPC to browse trades." to player
+                send "&7Stand within &f5 blocks&7 of the NPC to interact." to player
+                stop
+            arg-2 is "vaults":
+                send "&7Use &e/vault &7to open your personal vault." to player
+                stop
+            arg-2 is "trails":
+                send "&7Use &e/trails &7to open the trail selector." to player
+                stop
+            arg-2 is "chatcolor":
+                send "&7Use &e/chatcolor &7to customize your chat color." to player
+                stop
+            arg-2 is "gameplay":
+                send "&7Mine ores, sell at shops, upgrade your gear." to player
+                stop
+
+            send "&cUnknown category &e%arg-2%&c. Use &e/help players&c for the menu." to player
+            stop
+
+        # ─── Content-team menu ───
+        if arg-1 is "content-team":
+            if player does not have permission "sk.content-team.help":
+                send "&cUnknown help category. Use &e/help&c for the menu." to player
+                stop
+
+            if arg-2 is not set:
+                sendTitle(player)
+                send "&8&m───────&r &7&lContent Team &8&m────────" to player
+                send mini message from "  <dark_gray>» <click:run_command:'/help content-team mines'><hover:show_text:'<gray>Click to open mines help'><gold><b>[Mines]</b></gold></hover></click> <gray>- Auto-refilling mines" to player
+                send mini message from "  <dark_gray>» <click:run_command:'/help content-team items'><hover:show_text:'<gray>Click to open items help'><gold><b>[Items]</b></gold></hover></click> <gray>- Rename & enchant tools" to player
+                send mini message from "  <dark_gray>» <click:run_command:'/help content-team shops'><hover:show_text:'<gray>Click to open shops help'><gold><b>[Shops]</b></gold></hover></click> <gray>- NPC shop system" to player
+                send "" to player
+                send "&7&oClick a topic to open its help guide." to player
+                send "&8&m                                                  " to player
+                send "" to player
+                stop
+
+            arg-2 is "mines":
+                helpgui_mines(player)
+                stop
+            arg-2 is "items":
+                helpgui_item(player)
+                stop
+            arg-2 is "shops":
+                helpgui_shop(player)
+                stop
+
+            send "&cUnknown category &e%arg-2%&c. Use &e/help content-team&c for the menu." to player
+            stop
+
+        # Unknown top-level arg — generic message, no permission leak
+        send "&cUnknown help category. Use &e/help&c for the menu." to player
+
+on tab complete of "/help":
+    if tab arg-1 is "":
+        add "players" to tab completions for position 1
+        if player has permission "sk.content-team.help":
+            add "content-team" to tab completions for position 1
+
+    if tab arg-1 is "players":
+        add "shops" and "vaults" and "trails" and "chatcolor" and "gameplay" to tab completions for position 2
+
+    if tab arg-1 is "content-team":
+        if player has permission "sk.content-team.help":
+            add "mines" and "items" and "shops" to tab completions for position 2
+
+local function sendTitle(p: player):
+    send "&8&m                                                            " to {_p}
+    send "&8|     &6&lHELP &7- &eWhere do you need help with?      &8|" to {_p}
+    send "&8&m                                                            " to {_p}
+    send "" to {_p}

@@ -1,0 +1,6 @@
+expression %item% with skull value %string%:
+    get:
+        set {_item} to expr-1
+        set {_nbt} to "{""minecraft:profile"":{id:[I;1,1,1,1],properties:[{name:""textures"",value:""%expr-2%""}]}}"
+        set {_item} to {_item} with nbt compound of {_nbt}
+        return {_item}

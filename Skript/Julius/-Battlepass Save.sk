@@ -1,0 +1,250 @@
+options:
+    gui-title: &6&lʙᴀᴛᴛᴇʟᴘᴀss
+    reward-title: &6&lʀᴇᴡᴀʀᴅs
+    quest-title: &6&lǫᴜᴇsᴛs
+    lb-title: &f&lʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ
+    
+    prefix: &6&lʙᴀᴛᴛᴇʟᴘᴀss &8»&r
+    info-prefix: &b&lɪɴғᴏ &8»&r
+    
+    # --- SOUND EFFECTS ---
+    click-sound: "ui.button.click"
+    open-sound: "block.barrel.open"
+    claim-sound: "entity.experience_orb.pickup"
+    level-sound: "ui.toast.challenge_complete"
+    quest-open-sound: "item.book.page_turn"
+    booster-sound: "entity.player.levelup"
+    quest-complete-sound: "entity.player.levelup"
+
+variables:
+    {bp::xp::%player%} = 0
+    {bp::level::%player%} = 1
+    {bp::req_xp} = 1000
+    {bp::q::zombies::%player%} = 0
+    {bp::q::miner::%player%} = 0
+    {bp::q::farmer::%player%} = 0
+    {bp::q::lumber::%player%} = 0
+    {bp::qw::kills::%player%} = 0
+
+# --- QUEST TRACKING ---
+
+on death of zombie:
+    attacker is a player:
+        if {bp::q::zombies::%attacker%} < 10:
+            add 1 to {bp::q::zombies::%attacker%}
+            if {bp::q::zombies::%attacker%} is 10:
+                add 100 to {bp::xp::%attacker%}
+                send "{@prefix} &a&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇ: &fᴢᴏᴍʙɪᴇ ʜᴜɴᴛᴇʀ &b(+100 хᴘ)" to attacker
+                play sound {@quest-complete-sound} to attacker
+                checkLevelUp(attacker)
+
+on death:
+    attacker is a player:
+        if {bp::qw::kills::%attacker%} < 100:
+            add 1 to {bp::qw::kills::%attacker%}
+            if {bp::qw::kills::%attacker%} is 100:
+                add 2000 to {bp::xp::%attacker%}
+                send "{@prefix} &6&lᴡᴇᴇᴋʟʏ ǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇ: &fᴍᴀssᴀᴄʀᴇ &b(+2000 хᴘ)" to attacker
+                play sound {@quest-complete-sound} to attacker
+                checkLevelUp(attacker)
+
+on break:
+    if event-block is stone:
+        if {bp::q::miner::%player%} < 100:
+            add 1 to {bp::q::miner::%player%}
+            if {bp::q::miner::%player%} is 100:
+                add 500 to {bp::xp::%player%}
+                send "{@prefix} &a&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇ: &fᴍɪɴᴇʀ &b(+500 хᴘ)" to player
+                play sound {@quest-complete-sound} to player
+                checkLevelUp(player)
+    
+    if event-block is wheat:
+        if {bp::q::farmer::%player%} < 50:
+            add 1 to {bp::q::farmer::%player%}
+            if {bp::q::farmer::%player%} is 50:
+                add 500 to {bp::xp::%player%}
+                send "{@prefix} &a&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇ: &fғᴀʀᴍᴇʀ &b(+500 хᴘ)" to player
+                play sound {@quest-complete-sound} to player
+                checkLevelUp(player)
+
+    if event-block is oak log or spruce log or birch log or jungle log or acacia log or dark oak log or oak wood or spruce wood or birch wood or jungle wood or acacia wood or dark oak wood:
+        if {bp::q::lumber::%player%} < 50:
+            add 1 to {bp::q::lumber::%player%}
+            if {bp::q::lumber::%player%} is 50:
+                add 500 to {bp::xp::%player%}
+                send "{@prefix} &a&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇ: &fʟᴜᴍʙᴇʀᴊᴀᴄᴋ &b(+500 хᴘ)" to player
+                play sound {@quest-complete-sound} to player
+                checkLevelUp(player)
+
+function checkLevelUp(p: player):
+    if {bp::xp::%{_p}%} >= {bp::req_xp}:
+        remove {bp::req_xp} from {bp::xp::%{_p}%}
+        add 1 to {bp::level::%{_p}%}
+        send "{@prefix} &a&lʟᴇᴠᴇʟ ᴜᴘ! &7ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ʟᴇᴠᴇʟ &e%{bp::level::%{_p}%}%" to {_p}
+        play sound {@level-sound} to {_p}
+
+# --- GUI SECTION ---
+
+command /battlepass:
+    aliases: /bp
+    trigger:
+        openMain(player)
+
+function openMain(p: player):
+    set {_gui} to a new chest inventory with 6 rows named "{@gui-title}"
+    loop integers between 0 and 53:
+        set slot loop-value of {_gui} to gray stained glass pane named "&7"
+    
+    set {_progress} to ({bp::xp::%{_p}%} / {bp::req_xp}) * 10
+    set {_bar} to ""
+    loop 10 times:
+        if loop-number <= {_progress}:
+            set {_bar} to "%{_bar}%&a|"
+        else:
+            set {_bar} to "%{_bar}%&7|"
+            
+    set slot 13 of {_gui} to minecart named "&esᴇᴀsᴏɴ sᴛᴀᴛᴜs" with lore "&d&oʟᴇᴠᴇʟ: &f%{bp::level::%{_p}%}%", "&d&oхᴘ: &f%{bp::xp::%{_p}%}% / %{bp::req_xp}%", "&8[%{_bar}%&8]", "", "&e&oᴄʟɪᴄᴋ ғᴏʀ ᴍᴏʀᴇ ɪɴғᴏ"
+    
+    set slot 46 of {_gui} to writable book named "&eǫᴜᴇsᴛs" with lore "&d&oᴠɪᴇᴡ ᴅᴀɪʟʏ ᴀɴᴅ ᴡᴇᴇᴋʟʏ ǫᴜᴇꜱᴛꜱ"
+    
+    set slot 48 of {_gui} to chest minecart named "&6ʀᴇᴡᴀʀᴅs" with lore "&d&oᴄʟᴀɪᴍ ʏᴏᴜʀ ʀᴇᴡᴀʀᴅs ʜᴇʀᴇ"
+    
+    set slot 49 of {_gui} to nether star named "&bʙᴀᴛᴛʟᴇ ᴘᴀss ɪɴғᴏ" with lore "&d&oᴠɪᴇᴡ ᴘᴀss ᴅᴇᴛᴀɪʟs"
+    
+    set slot 50 of {_gui} to paper named "&fʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ" with lore "&d&oᴠɪᴇᴡ ᴛᴏᴘ ᴘʟᴀʏᴇʀs"
+    
+    set slot 52 of {_gui} to experience bottle named "&aʙᴏᴏsᴛᴇʀs" with lore "&d&oᴠɪᴇᴡ ᴀᴄᴛɪᴠᴇ ʙᴏᴏsᴛᴇʀs!"
+    
+    open {_gui} to {_p}
+    play sound {@open-sound} to {_p}
+
+function openLeaderboard(p: player):
+    set {_gui} to a new chest inventory with 6 rows named "{@lb-title}"
+    loop integers between 0 and 53:
+        set slot loop-value of {_gui} to gray stained glass pane named "&7"
+    set {_n} to 0
+    loop all players:
+        add 1 to {_n}
+        if {_n} <= 27:
+            set slot ({_n} + 9) of {_gui} to loop-player's skull named "&e#%{_n}% &f%loop-player%" with lore "&d&oʟᴇᴠᴇʟ: &f%{bp::level::%loop-player%}%"
+    set slot 49 of {_gui} to barrier named "&c&lʙᴀᴄᴋ"
+    open {_gui} to {_p}
+
+function openQuests(p: player):
+    set {_gui} to a new chest inventory with 5 rows named "{@quest-title}"
+    loop integers between 0 and 44:
+        set slot loop-value of {_gui} to gray stained glass pane named "&7"
+    
+    set slot 10 of {_gui} to clock named "&e&lᴅᴀɪʟʏ ǫᴜᴇsᴛs"
+    
+    if {bp::q::zombies::%{_p}%} >= 10:
+        set slot 11 of {_gui} to barrier named "&c&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ" with lore "&7ᴢᴏᴍʙɪᴇ ʜᴜɴᴛᴇʀ", "", "&a✔ &7ʏᴏᴜ ʜᴀᴠᴇ ғɪɴɪsʜᴇᴅ ᴛʜɪs ᴛᴀsᴋ!"
+    else:
+        set slot 11 of {_gui} to iron sword named "&f&lᴢᴏᴍʙɪᴇ ʜᴜɴᴛᴇʀ" with lore "&7Daily Task", "", "&d&oᴋɪʟʟ 10 ᴢᴏᴍʙɪᴇs", "&fᴘʀᴏɢʀᴇss: &e%{bp::q::zombies::%{_p}%}%/10", "", "&6ʀᴇᴡᴀʀᴅ: &b+100 хᴘ"
+    
+    if {bp::q::miner::%{_p}%} >= 100:
+        set slot 12 of {_gui} to barrier named "&c&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ" with lore "&7ᴍɪɴᴇʀ", "", "&a✔ &7ʏᴏᴜ ʜᴀᴠᴇ ғɪɴɪsʜᴇᴅ ᴛʜɪs ᴛᴀsᴋ!"
+    else:
+        set slot 12 of {_gui} to stone pickaxe named "&f&lᴍɪɴᴇʀ" with lore "&7Daily Task", "", "&d&oᴍɪɴᴇ 100 sᴛᴏɴᴇ", "&fᴘʀᴏɢʀᴇss: &e%{bp::q::miner::%{_p}%}%/100", "", "&6ʀᴇᴡᴀʀᴅ: &b+500 хᴘ"
+    
+    if {bp::q::farmer::%{_p}%} >= 50:
+        set slot 13 of {_gui} to barrier named "&c&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ" with lore "&7ғᴀʀᴍᴇʀ", "", "&a✔ &7ʏᴏᴜ ʜᴀᴠᴇ ғɪɴɪsʜᴇᴅ ᴛʜɪs ᴛᴀsᴋ!"
+    else:
+        set slot 13 of {_gui} to wheat named "&f&lғᴀʀᴍᴇʀ" with lore "&7Daily Task", "", "&d&oʜᴀʀᴠᴇsᴛ 50 ᴡʜᴇᴀᴛ", "&fᴘʀᴏɢʀᴇss: &e%{bp::q::farmer::%{_p}%}%/50", "", "&6ʀᴇᴡᴀʀᴅ: &b+500 хᴘ"
+    
+    if {bp::q::lumber::%{_p}%} >= 50:
+        set slot 14 of {_gui} to barrier named "&c&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ" with lore "&7ʟᴜᴍʙᴇʀᴊᴀᴄᴋ", "", "&a✔ &7ʏᴏᴜ ʜᴀᴠᴇ ғɪɴɪsʜᴇᴅ ᴛʜɪs ᴛᴀsᴋ!"
+    else:
+        set slot 14 of {_gui} to oak log named "&f&lʟᴜᴍʙᴇʀᴊᴀᴄᴋ" with lore "&7Daily Task", "", "&d&oᴄʜᴏᴘ 50 ʟᴏɢs", "&fᴘʀᴏɢʀᴇss: &e%{bp::q::lumber::%{_p}%}%/50", "", "&6ʀᴇᴡᴀʀᴅ: &b+500 хᴘ"
+
+    set slot 19 of {_gui} to compass named "&6&lᴡᴇᴇᴋʟʏ ǫᴜᴇsᴛs"
+    
+    if {bp::qw::kills::%{_p}%} >= 100:
+        set slot 20 of {_gui} to barrier named "&c&lǫᴜᴇsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ" with lore "&7ᴍᴀssᴀᴄʀᴇ", "", "&a✔ &7ʏᴏᴜ ʜᴀᴠᴇ ғɪɴɪsʜᴇᴅ ᴛʜɪs ᴛᴀsᴋ!"
+    else:
+        set slot 20 of {_gui} to diamond sword named "&6&lᴍᴀssᴀᴄʀᴇ" with lore "&7Weekly Task", "", "&d&oᴋɪʟʟ 100 ᴍᴏʙs ᴏʀ ᴘʟᴀʏᴇʀs", "&fᴘʀᴏɢʀᴇss: &e%{bp::qw::kills::%{_p}%}%/100", "", "&6ʀᴇᴡᴀʀᴅ: &b+2000 хᴘ"
+
+    set slot 40 of {_gui} to barrier named "&c&lʙᴀᴄᴋ"
+    open {_gui} to {_p}
+
+function openRewards(p: player, page: number):
+    set {_title} to "{@reward-title} &8- ᴘᴀɢᴇ %{_page}%"
+    set {_gui} to a new chest inventory with 3 rows named "%{_title}%"
+    loop integers between 0 and 26:
+        set slot loop-value of {_gui} to gray stained glass pane named "&7"
+    loop 7 times:
+        set {_tier} to loop-number + (({_page} - 1) * 7)
+        set {_slot} to loop-number + 9 
+        if {_tier} <= 10:
+            if {bp::level::%{_p}%} >= {_tier}:
+                if {bp::claimed::%{_tier}%::%{_p}%} is not set:
+                    set slot {_slot} of {_gui} to chest minecart named "&a&lᴛɪᴇʀ %{_tier}%" with lore "&7Status: &a&lᴜɴʟᴏᴄᴋᴇᴅ", "", "&e&oᴄʟɪᴄᴋ ᴛᴏ ᴄʟᴀɪᴍ ʀᴇᴡᴀʀᴅ!"
+                else:
+                    set slot {_slot} of {_gui} to barrier named "&c&lᴛɪᴇʀ %{_tier}%" with lore "&7Status: &7ᴄʟᴀɪᴍᴇᴅ"
+            else:
+                set slot {_slot} of {_gui} to minecart named "&7&lᴛɪᴇʀ %{_tier}%" with lore "&7Status: &c&lʟᴏᴄᴋᴇᴅ", "&7Requires Level %{_tier}%"
+    if {_page} is 1:
+        set slot 26 of {_gui} to spectral arrow named "&e&lɴᴇxᴛ ᴘᴀɢᴇ"
+    else:
+        set slot 18 of {_gui} to spectral arrow named "&e&lᴘʀᴇᴠɪᴏᴜs ᴘᴀɢᴇ"
+    set slot 22 of {_gui} to barrier named "&c&lʙᴀᴄᴋ"
+    open {_gui} to {_p}
+
+# --- CLICK HANDLERS ---
+
+on inventory click:
+    if name of event-inventory is "{@gui-title}":
+        cancel event
+        if index of event-slot is 46:
+            play sound {@quest-open-sound} to player
+            openQuests(player)
+        else if index of event-slot is 48:
+            play sound {@click-sound} to player
+            openRewards(player, 1)
+        else if index of event-slot is 49:
+            play sound {@claim-sound} to player
+            send "{@info-prefix} &7Current Season: &eSpring Party &8(&f90 Days Left&8)" to player
+        else if index of event-slot is 50:
+            play sound {@click-sound} to player
+            openLeaderboard(player)
+        else if index of event-slot is 52:
+            play sound {@booster-sound} to player
+            send "{@prefix} &dʏᴏᴜ ʜᴀᴠᴇ &a0 &dᴀᴄᴛɪᴠᴇ ʙᴏᴏsᴛᴇʀs."
+
+    if name of event-inventory is "{@quest-title}" or "{@lb-title}":
+        cancel event
+        if index of event-slot is 40 or 49:
+            play sound {@click-sound} to player
+            openMain(player)
+
+    if name of event-inventory contains "{@reward-title}":
+        cancel event
+        set {_page} to 1
+        if name of event-inventory contains "ᴘᴀɢᴇ 2":
+            set {_page} to 2
+        
+        if index of event-slot is 22:
+            play sound {@click-sound} to player
+            openMain(player)
+        else if index of event-slot is 26:
+            play sound {@click-sound} to player
+            openRewards(player, 2)
+        else if index of event-slot is 18:
+            play sound {@click-sound} to player
+            openRewards(player, 1)
+            
+        if index of event-slot is between 10 and 16:
+            set {_tier} to (index of event-slot - 9) + (({_page} - 1) * 7)
+            if {bp::level::%player%} >= {_tier}:
+                if {bp::claimed::%{_tier}%::%player%} is not set:
+                    set {bp::claimed::%{_tier}%::%player%} to true
+                    give player 1 diamond block
+                    send "{@prefix} &aSuccessfully claimed Reward &fᴛɪᴇʀ %{_tier}%&a!" to player
+                    play sound {@claim-sound} to player
+                    openRewards(player, {_page})
+                else: 
+                    send "{@prefix} &cYou already claimed this tier!" to player
+                    play sound {@click-sound} to player
+            else:
+                send "{@prefix} &cYou need Level %{_tier}% to unlock this!" to player
+                play sound {@click-sound} to player

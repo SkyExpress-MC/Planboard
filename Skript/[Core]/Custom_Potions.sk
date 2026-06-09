@@ -1,0 +1,158 @@
+# -----------------------------------------------
+#   Potions — potions.sk
+# -----------------------------------------------
+
+# -----------------------------------------------
+#   FUNCTIONS
+# -----------------------------------------------
+
+function regenPotion() :: item:
+    set {_item} to potion of regeneration named "&fPotion of Regen"
+    return {_item}
+
+function jumpPotion() :: item:
+    set {_item} to potion of leaping named "&fPotion of Leaping"
+    return {_item}
+
+function speedPotion() :: item:
+    set {_item} to potion of speed named "&fPotion of Swiftness"
+    return {_item}
+
+function hastePotion() :: item:
+    set {_item} to honey bottle named "&6&lHaste Potion"
+    set lore of {_item} to "&7Grants &eHaste I &7for 60 seconds.", "&8Right-click to drink! &7(Non stackable)"
+    return {_item}
+
+function ragePotion() :: item:
+    set {_item} to potion of healing named "&c&lRage Potion" with item flag hide additional tooltip
+    set lore of {_item} to "&7Grants &cStrength I &7and &eHaste I &7for 30 seconds.", "&8Right-click to drink! &7(Non stackable)"
+    return {_item}
+
+function ironSkin() :: item:
+    set {_item} to potion of invisibility named "&7&lIron Skin" with item flag hide additional tooltip
+    set lore of {_item} to "&7Grants &7Resistance I &7for 45 seconds.", "&8Right-click to drink! &7(Non stackable)"
+    return {_item}
+
+function minerPotion() :: item:
+    set {_item} to honey bottle named "&6&lMiner's Potion"
+    set lore of {_item} to "&7Grants &6Haste II &7and &fNight Vision &7for 30 seconds.", "&8Right-click to drink! &7(Non stackable)"
+    return {_item}
+
+# -----------------------------------------------
+#   GIVE COMMANDS
+# -----------------------------------------------
+
+command /potion <string> [<player>]:
+    permission: sk.staff.givepotion
+    trigger:
+        switch arg-1:
+            case "haste":
+                if arg-2 is set:
+                    give hastePotion() to arg-2
+                    send "&aGave &6Haste Potion &ato %arg-1%!" to player
+
+                else:
+                    give hastePotion() to player
+                    send "&aYou received a &6Haste Potion&a!" to player
+            case "rage":
+                if arg-2 is set:
+                    give ragePotion() to arg-2
+                    send "&aGave &cRage Potion&a to %arg-1%!" to player
+                else:
+                    give ragePotion() to player
+                    send "&aYou received a &cRage Potion&a!" to player
+            case "ironskin":
+                if arg-2 is set:
+                    give ironSkin() to arg-2
+                    send "&aGave &7Iron Skin &ato %arg-1%!" to player
+                else:
+                    give ironSkin() to player
+                    send "&aYou received an &7Iron Skin&a potion!" to player
+            case "miner":
+                if arg-2 is set:
+                    give minerPotion() to arg-2
+                    send "&aGave &6Miner's Potion&a to %arg-1%!" to player
+                else:
+                    give minerPotion() to player
+                    send "&aYou received a &6Miner's Potion&a!" to player
+            case "regen":
+                if arg-2 is set:
+                    give regenPotion() to arg-2
+                    send "&aGave &fRegen Potion &ato %arg-1%!" to player
+                else:
+                    give regenPotion() to player
+                    send "&aYou received a &fRegen Potion&a!" to player
+            case "speed":
+                if arg-2 is set:
+                    give speedPotion() to arg-2
+                    send "&aGave &fSpeed Potion &ato %arg-1%!" to player
+                else:
+                    give speedPotion() to player
+                    send "&aYou received a &fSpeed Potion&a!" to player
+            case "jump boost":
+                if arg-2 is set:
+                    give jumpPotion() to arg-2
+                    send "&aGave &fJump Boost Potion &ato %arg-1%!" to player
+                else:
+                    give jumpPotion() to player
+                    send "&aYou received a &fJump Boost Potion&a!" to player
+
+on tab complete of "/potion":
+    set tab completions for position 1 to "haste", "rage", "ironskin", "regen", "speed", "jump boost" and "miner"
+# -----------------------------------------------
+#   DRINK EFFECTS
+# -----------------------------------------------
+
+on right click with honey bottle:
+    if name of player's tool is "&6&lHaste Potion":
+        cancel event
+        remove hastePotion() from player's inventory
+        apply haste 1 to player for 60 seconds
+        send "&6Haste Potion &eactive for 60 seconds." to player
+        play sound "entity.player.burp" to player
+
+    if name of player's tool is "&6&lMiner's Potion":
+        cancel event
+        remove minerPotion() from player's inventory
+        apply haste 2 to player for 30 seconds
+        apply night vision 1 to player for 30 seconds
+        send "&6Miner's Potion &eactive for 30 seconds." to player
+        play sound "entity.player.burp" to player
+
+on right click:
+    if name of player's tool is "&c&lRage Potion":
+        cancel event
+        remove ragePotion() from player's inventory
+        apply strength 1 to player for 30 seconds
+        apply haste 1 to player for 30 seconds
+        send "&cRage Potion &eactive for 30 seconds." to player
+        play sound "entity.player.burp" to player
+
+    if name of player's tool is "&7&lIron Skin":
+        cancel event
+        remove ironSkin() from player's inventory
+        apply resistance 1 to player for 45 seconds
+        send "&7Iron Skin &eactive for 45 seconds." to player
+        play sound "entity.player.burp" to player
+    
+    if name of player's tool is "&fPotion of Regen":
+        cancel event
+        remove regenPotion() from player's inventory
+        apply regeneration 1 to player for 90 seconds
+        send "Regen Potion &eactive for 90 seconds" to player
+        play sound "entity.player.burp" to player
+    
+    if name of player's tool is "&fPotion of Leaping":
+        cancel event
+        remove jumpPotion() from player's inventory
+        apply Jump 1 to player for 180 seconds
+        send "Jump boost Potion &eactive for 180 seconds" to player
+        play sound "entity.player.burp" to player
+    
+    if name of player's tool is "&fPotion of Swiftness":
+        cancel event
+        remove speedPotion() from player's inventory
+        apply Swiftness 1 to player for 180 seconds
+        send "Swiftness Potion &eactive for 180 seconds" to player
+        play sound "entity.player.burp" to player
+

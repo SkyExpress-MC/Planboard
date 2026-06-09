@@ -1,0 +1,41 @@
+function GiveExp(amount: number, p: player):
+	{_p} is a player
+	{_amount} > 0
+	if {data::pvp::%{_p}%} = true:
+		set {_amount} to {_amount} + {data::prestige::%{_p}%} * 3
+	else:
+		set {_amount} to {_amount} + {data::prestige::%{_p}%} * 3 - 1
+	if {_amount} < 1:
+		set {_amount} to 1
+	add {_amount} to {data::exp::%{_p}%}
+	set {_exp} to {data::exp::%{_p}%}
+	set {_maxExp} to GetMaxExp({_p})
+	set level progress of {_p} to {_exp} / {_maxExp}
+	if {_exp} >= {_maxExp}:
+		LevelUp({_p})
+
+function SetLevel(amount: integer, p: player):
+	set {data::exp::%{_p}%} to 0
+	set {data::level::%{_p}%} to {_amount}
+	set {_p}'s level to {_amount}
+	set {_p}'s level progress to 0
+	send action bar "<#B3B9BA>%{data::exp::%{_p}%}%/%GetMaxExp({_p})% EXP" to {_p}
+
+function RemoveLevel(amount: integer, p: player):
+	SetLevel({data::level::%{_p}%} - {_amount}, {_p})
+
+function PlayerHasLevel(amount: number, p: player) :: boolean:
+	if {data::level::%{_p}%} >= {_amount}:
+		return true
+	return false
+
+function GetMaxExp(p: player) :: integer:
+	return ({data::level::%{_p}%} * 100) + 100
+
+function LevelUp(p: player):
+	set {data::exp::%{_p}%} to 0
+	add 1 to {data::level::%{_p}%}
+	set {_p}'s level to {data::level::%{_p}%}
+	set {_p}'s level progress to 0
+	send title "<#00FFAA>⮝ <#68F552>ʟᴇᴠᴇʟ ᴜᴘ <#00FFAA>⮝" to {_p} for 0.5 seconds with fadein 0.25 seconds and fadeout 0.25 seconds
+	play sound "entity.player.levelup" at volume 0.25 at pitch 1.5 to {_p}

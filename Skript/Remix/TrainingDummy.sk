@@ -1,0 +1,10 @@
+command /trainingdummy:
+    permission: *
+    trigger:
+        set {_locDummy} to location of player
+        spawn armor stand at {_locDummy}
+        loop entities:
+            if loop-entity is armor stand:
+                set tag "Invulnerable" of nbt of loop-entity to 1
+                set tag "ShowArms" of nbt of loop-entity to 0
+                set tag "NoBasePlate" of nbt of loop entity to 1

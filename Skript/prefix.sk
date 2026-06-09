@@ -1,0 +1,17 @@
+###############################################
+# Made by ItzRepsac_
+# Requires: Skript
+# Tested on: 1.20.4
+# License: MIT License
+################################################
+# This is made to display always the same prefix in front of the command messages.
+# You can add the prefix to the command messages by adding &e%{prefix}% to the command message.
+#
+# Example: "%{prefix}% &aYou paid 100 coins to &e%player%"
+
+command /setprefix <string>:
+	permission: staff.setprefix 
+	trigger:
+		set {_x} to mini message from arg-1
+		set {prefix} to "%{_x}% &7&l⪼"
+		send "%{prefix}% &aSuccesfully changed the prefix!" to player

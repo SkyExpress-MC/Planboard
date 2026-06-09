@@ -1,0 +1,37 @@
+
+command /rules:
+    description: View the SkyExpress server rules.
+    aliases: /rule
+    trigger:
+
+        create a gui with id "rules::%player%" with virtual chest inventory with 3 rows named "SkyExpress Rules" with shape "xxxxHxxxx", "x1234567x" and "xxxxxxxxx":
+
+            make gui slot "x" with gray stained glass pane named " "
+
+            # ── Header (H) ──
+            make gui slot "H" with enchanted book named "&d&lSkyExpress Server Rules" with lore "&7Please read and follow all rules.", "&7Breaking them may result in punishment." and "&8Last updated: &f05/15/2026"
+
+            # ── Rule 2 - No cheating ──
+            make gui slot "1" with command block named "&e&l1. No Cheats or Hacks" with lore "&7No client modifications that give", "&7unfair advantages: fly, killaura,", "&7auto-clickers, macros, etc.", "&7Freecam is prohibited aswell.", "" and "&aOptifine, shaders & minimaps are OK."
+
+            # ── Rule 3 - No spam ──
+            make gui slot "2" with paper named "&e&l2. No Spam or Caps" with lore "&7Don't flood chat with repeated", "&7messages, excessive caps, or random", "&7characters.", "" and "&7Keep chat readable for everyone."
+
+            # ── Rule 4 - Be respectful ──
+            make gui slot "3" with player head named "&e&l3. Be Respectful" with lore "&7Treat everyone with respect.", "&7No insults, slurs, harassment, or", "&7discriminatory language of any kind.", "" and "&cZero tolerance for hate speech."
+
+            # ── Rule 5 - No exploits ──
+            make gui slot "4" with redstone named "&e&l4. No Exploits or Duping" with lore "&7Don't abuse bugs, glitches, or duping.", "&7If you find one, report it on Discord.", "" and "&aReporting bugs gets you rewarded."
+
+            # ── Rule 6 - No advertising ──
+            make gui slot "5" with oak sign named "&e&l5. No Advertising" with lore "&7Don't promote other servers, websites,", "&7or services in chat or DMs.", "" and "&7Includes IPs, invites, and Discords."
+
+            # ── Rule 7 - English only ──
+            make gui slot "6" with writable book named "&e&l6. English in Public Chat" with lore "&7Keep the main chat in English so", "&7everyone can participate.", "" and "&7Other languages are fine in DMs."
+            make gui slot "7" with experience bottle named "&e&l7. Don't share secret shop locations" with lore "&7They are secret for a reason." and "&7So you shouldnt tell others about them."
+
+            # ── Close button (X) ──
+            make gui slot "X" with barrier named "&c&lClose" with lore "&7Click to close this menu.":
+                close the player's inventory
+
+        open gui with id "rules::%player%" to player

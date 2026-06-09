@@ -1,0 +1,27 @@
+####################################################
+#####     SETUP GAMERULES FOR NEW WORLD        #####
+####################################################
+command /setupworld:
+	permission: sk.content-team.setupworld
+	trigger:
+		make player execute command "/gamerule announce_advancements false"
+		make player execute command "/gamerule advance_time false"
+		make player execute command "/gamerule entity_drops false"
+		make player execute command "/gamerule immediate_respawn true"
+		make player execute command "/gamerule mob_drops false"
+		make player execute command "/gamerule spawn_mobs false"
+		make player execute command "/gamerule spawn_monsters false"
+		make player execute command "/gamerule spawn_phantoms false"
+		make player execute command "/gamerule spawn_wandering_traders false"
+		make player execute command "/gamerule spawn_wardens false"
+		make player execute command "/gamerule spawn_patrols false"
+		make player execute command "/gamerule spawn_blocks_work false"
+		make player execute command "/gamerule mob_drops false"
+
+		make player execute command "/gamerule fall_damage false"
+		make player execute command "/gamerule keep_inventory true"
+		make player execute command "/gamerule mob_griefing false"
+		make player execute command "/gamerule random_tick_speed 0"
+		wait 1 second
+		make player execute command "/rg flag __global__ passthrough deny"
+		make player execute command "/rg flag __global__ deny-message -e"
