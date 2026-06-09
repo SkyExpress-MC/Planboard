@@ -1,0 +1,99 @@
+on load:
+    load yaml "plugins/Skript/YAML/mines/overworld.yml" as "overworld"
+    load yaml "plugins/Skript/YAML/mines/nether.yml" as "nether"
+    load yaml "plugins/Skript/YAML/mines/end.yml" as "end"
+
+on break:
+    cancel drops
+    cancel xp drops
+    add 1 to {data::blocks_mined::%player%}
+    if player's inventory cannot hold 1 saddle:
+        play sound "minecraft:block.amethyst_block.step" with volume 2 to player
+        if {dontspam_title::%player's uuid%} is not set:
+            set {dontspam_title::%player's uuid%} to true
+            send title "&cInventory full" to player for 2 seconds
+            send subtitle "&fPlease clear your inventory to gain drops!" to player for 2 seconds
+            wait 3 seconds
+            delete {dontspam_title::%player's uuid%}
+        stop
+
+    if name of player's world is "SpawnWorld":
+        giveDrops(event-block, "spruce_log", "overworld", player)
+        giveDrops(event-block, "spruce_planks", "overworld", player)
+
+        giveDrops(event-block, "cobblestone", "overworld", player)
+        giveDrops(event-block, "stone", "overworld", player)
+
+        giveDrops(event-block, "coal_ore", "overworld", player)
+        giveDrops(event-block, "coal_block", "overworld", player)
+
+        giveDrops(event-block, "iron_ore", "overworld", player)
+        giveDrops(event-block, "iron_block", "overworld", player)
+
+        giveDrops(event-block, "gold_ore", "overworld", player)
+        giveDrops(event-block, "gold_block", "overworld", player)
+
+        giveDrops(event-block, "diamond_ore", "overworld", player)
+        giveDrops(event-block, "diamond_block", "overworld", player)
+
+        giveDrops(event-block, "emerald_ore", "overworld", player)
+        giveDrops(event-block, "emerald_block", "overworld", player)
+
+        giveDrops(event-block, "redstone_ore", "overworld", player)
+        giveDrops(event-block, "redstone_block", "overworld", player)
+
+        giveDrops(event-block, "lapis_ore", "overworld", player)
+        giveDrops(event-block, "lapis_block", "overworld", player)
+
+    else if name of player's world is "Nether":
+        giveDrops(event-block, "nether_quartz_ore", "nether", player)
+        giveDrops(event-block, "nether_quartz_block", "nether", player)
+        giveDrops(event-block, "ancient_debris", "nether", player)
+        giveDrops(event-block, "crying_obsidian", "nether", player)
+        giveDrops(event-block, "respawn_anchor", "nether", player)
+    else if name of player's world is "End":
+        giveDrops(event-block, "end_stone_bricks", "end", player)
+        giveDrops(event-block, "purpur_pillar", "end", player)
+        giveDrops(event-block, "amethyst_block", "end", player)
+        giveDrops(event-block, "calcite", "end", player)
+        giveDrops(event-block, "sea_lantern", "end", player)
+        giveDrops(event-block, "tinted_glass", "end", player)
+        giveDrops(event-block, "black_stained_glass", "end", player)
+        giveDrops(event-block, "purple_stained_glass", "end", player)
+        giveDrops(event-block, "magenta_stained_glass", "end", player)
+
+
+
+function giveDrops(evnt: block, ore: text, mine: text, p: player):
+    set {_broken} to {_ore} parsed as item type
+
+    if type of {_evnt} is {_broken}:
+
+        set {_drop} to yaml value "%{_ore}%.drop" from {_mine}
+        set {_name} to yaml value "%{_ore}%.name" from {_mine}
+        set {_item} to {_drop} parsed as item type
+
+        set {_xpMulti} to prestige_xp_multiplier({_p})
+        set {_coinMulti} to prestige_money_multiplier({_p})
+        set {_blockMulti} to prestige_drop_bonus({_p})
+
+        if {_item} is not set:
+            stop
+
+        if {_name} is set:
+            set name of {_item} to colored {_name}
+
+        set {_xp} to yaml value "%{_ore}%.xp" from {_mine}
+        set {_finalXP} to {_xp} * {_xpMulti}
+
+        set {_coins} to {_xp} * 0.4
+        set {_finalCoins} to {_xp} * {_coinMulti}
+
+        set {_base} to yaml value "%{_ore}%.amount" from {_mine}
+        set {_amount} to {_base} + level of fortune of {_p}'s tool
+        set {_finalBlocks} to {_amount} + {_blockMulti}
+
+        give {_amount} of {_item} to {_p}
+        GiveExp({_finalXP}, {_p})
+        add {_finalCoins} to {data::balance::%{_p}%}
+        send action bar "&a+%{_amount}% %name of {_item}% &7| &b+%{_finalXP}% XP &7| &6+%{_finalCoins}% coins" to {_p}

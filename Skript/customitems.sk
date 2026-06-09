@@ -1,0 +1,193 @@
+options:
+    grapple1: unbreakable fishing rod named "&6Grappling Hook" with lore "&7Fly high into the skies" with item flags hide unbreakable
+    grapple2: unbreakable fishing rod named "&6Grappling Hook &b2" with lore "&7Grapple even on air!" with item flags hide unbreakable
+
+# ====================================================
+# Bee wand
+# ====================================================
+on right click:
+    if player is sneaking:
+        set {_name} to uncolored name of player's tool
+        if {_name} is "Bee Wand":
+            if {beewand.cooldown::%uuid of player%} is set:
+                set {_elapsed} to difference between now and {beewand.cooldown.time::%uuid of player%}
+                set {_remaining} to 35 - floor({_elapsed} / 1 second)
+                send "<gold>[Bee Wand]</gold> <yellow>You need to wait <gold>%{_remaining}% seconds</gold> to use this ability again!" to player
+                stop
+            else:
+                set {_x} to x-coordinate of player
+                set {_y} to y-coordinate of player
+                set {_z} to z-coordinate of player
+                set {_w} to name of world of player
+                play sound "entity.bee.loop_aggressive" with volume 1 and pitch 1.5 at player
+                make console execute command "mm mob spawn SwarmBee 1 %{_w}%,%{_x}%,%{_y}%,%{_z}%"
+                make console execute command "mm mob spawn SwarmBee 1 %{_w}%,%{_x}%,%{_y}%,%{_z}%"
+                make console execute command "mm mob spawn SwarmBee 1 %{_w}%,%{_x}%,%{_y}%,%{_z}%"
+                make console execute command "mm mob spawn SwarmBee 1 %{_w}%,%{_x}%,%{_y}%,%{_z}%"
+                play sound "entity.bee.sting" with volume 1 and pitch 0.8 at player
+                set {beewand.cooldown::%uuid of player%} to true
+                set {beewand.cooldown.time::%uuid of player%} to now
+                wait 35 seconds
+                delete {beewand.cooldown::%uuid of player%}
+                delete {beewand.cooldown.time::%uuid of player%}
+
+# ====================================================
+# Vampire blade
+# ====================================================
+on damage:
+    attacker is a player
+    victim is a player
+    set {_name} to uncolored name of attacker's tool
+    if {_name} is "Vampire Blade":
+        remove 1 from hunger of attacker
+        if damage cause is entity attack:
+            chance of 25%:
+                heal attacker by 2
+                damage victim by 2
+                send "<dark_red>🩸 Lifesteal!" to attacker
+                play sound "entity.witch.drink" with volume 1 and pitch 1.2 at attacker
+
+# ====================================================
+# Viper Blade
+# ====================================================
+on damage:
+    attacker is a player
+    victim is a player
+    set {_name} to uncolored name of attacker's tool
+    if {_name} is "Viper Blade":
+        wait 1 tick
+        make attacker ride victim
+
+# ====================================================
+# Grappling hook mechanics
+# ====================================================
+on entity hook:
+    if hooked state of fish hook = hooked_entity:
+        cancel event
+        clear fish hook
+        send "&cYou cannot use a fishing hook on entities!" to event-player
+
+on hook in ground:
+    if "%fishing state%" is "bobber in ground":
+        if name of player's tool contains "&6Grappling Hook":
+            if item cooldown of player's tool for player = 0 seconds:
+                grapple(player)
+                clear fish hook
+            else:
+                send "&cGrappling Hook is on cooldown!" to player
+                clear fish hook
+
+on fishing rod reel in:
+    if name of player's tool is "&6Grappling Hook &b2":
+        if "%fishing state%" is "reel in":
+            if item cooldown of player's tool for player = 0 seconds:
+                grapple(player)
+                clear fish hook
+            else:
+                send "&cGrappling Hook is on cooldown!" to player
+                clear fish hook
+
+local function grapple(p: player):
+    push {_p} upwards at speed 1
+    push {_p} forwards at speed 1
+    push {_p} upwards at speed 0.6
+    play sound "ENTITY_ENDER_DRAGON_FLAP" at volume 1 and pitch 1.5 at {_p}
+    play sound "ENTITY_ZOMBIE_INFECT" at volume 1 and pitch 2 at {_p}
+    wait 2 ticks
+    set item cooldown of {_p}'s tool for {_p} to 4 seconds
+
+# ====================================================
+# Moonboot mechanics
+# ====================================================
+options:
+    launch_cooldown: 10 #seconds
+    max_air_charges: 5
+    launch_power: 1
+    dash_power: 1
+    bar_length: 20
+
+on right click:
+    moonboots_launch(player)
+on left click:
+    if player is sneaking:
+        moonboots_launch(player)
+    else:
+        moonboots_dash(player)
+
+on player move:
+    if player is on ground:
+        if {cooldown::%player's uuid%::moonboots} is not set:
+            if {moonLimit::%player's uuid%} is set:
+                delete {moonLimit::%player's uuid%}
+
+function moonboots_launch(p: player):
+    if {_p} is not sneaking:
+        stop
+    if {_p} is not wearing {var::moonboots}:
+        stop
+    if {_p} is not on ground:
+        stop
+
+    # Check cooldown
+    if {cooldown::%{_p}'s uuid%::moonboots} is set:
+        set {_elapsed} to difference between {cooldown::%{_p}'s uuid%::moonboots} and now
+        if {_elapsed} is less than ({@launch_cooldown} seconds):
+            set {_remaining} to difference between ({@launch_cooldown} seconds) and {_elapsed}
+            send action bar "&cWait &e%{_remaining}% &cbefore launching again!" to {_p}
+            stop
+
+    push {_p} upwards with speed {@launch_power}
+    set {cooldown::%{_p}'s uuid%::moonboots} to now
+    play sound "entity.firework_rocket.launch" with volume 1 at {_p} for {_p}
+    moonboots_cooldown_notify({_p})
+
+
+function moonboots_dash(p: player):
+    if {_p} is not wearing {var::moonboots}:
+        stop
+    if block below {_p} is not air:
+        stop
+    if {_p} is on ground:
+        stop
+
+    add 1 to {moonLimit::%{_p}'s uuid%}
+    set {_count} to {moonLimit::%{_p}'s uuid%}
+
+    if {_count} <= {@max_air_charges}:
+        push {_p} forward with speed {@dash_power}
+        set {_remaining} to {@max_air_charges} - {_count}
+        set {_bar} to GetProgress("bar", {_remaining}, {@max_air_charges}, {@bar_length})
+        send action bar "&bDash %{_bar}% &f%{_remaining}%&7/&f{@max_air_charges}" to {_p}
+        play sound "entity.breeze.shoot" with volume 0.5 at {_p} for {_p}
+    else:
+        send action bar "&cHey calm down! You need to land before continuing" to {_p}
+        play sound "block.note_block.bass" with volume 1 at {_p} for {_p}
+
+function moonboots_cooldown_notify(p: player):
+    set {_launch_time} to {cooldown::%{_p}'s uuid%::moonboots}
+    wait {@launch_cooldown} seconds
+
+    if {_p} is not online:
+        stop
+
+    # Make sure they didn't launch again in the meantime
+    if {cooldown::%{_p}'s uuid%::moonboots} is not {_launch_time}:
+        stop
+
+    delete {cooldown::%{_p}'s uuid%::moonboots}
+    send "&6[Moonboots] &aReady to launch again!" to {_p}
+    play sound "entity.experience_orb.pickup" with volume 1 at {_p} for {_p}
+
+# ====================================================
+# Funny yeet command, make the player ride a rocket
+# ====================================================
+command /yeet: 
+    trigger:
+        force player ride firework rocket
+        wait 1.5 seconds
+        
+        create an explosion of force 0 at the player
+        kill player's vehicle
+# ====================================================
+# New items go below here
+# ====================================================

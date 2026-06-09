@@ -1,0 +1,463 @@
+# SkyExpress Upgradable EnderChests
+# Put this file in: /plugins/Skript/scripts/Upgradable-EnderChests.sk
+# Requires: Skript and SkBee 3.16+ for dialogs.
+# Economy note: this uses SkyExpress' {data::balance::%player%} variable.
+
+options:
+    prefix: &8[&bSkyVault&8] &7
+    vault-name: &8SkyExpress EnderChest
+    starting-vaults: 1
+    max-vaults: 9
+    base-vault-cost: 50000
+    cost-multiplier: 4
+    currency-symbol: $
+    vault-5-rank: &6Vip
+    vault-5-permission: skyvault.rank.vip
+    vault-6-rank: &6Mvp
+    vault-6-permission: skyvault.rank.mvp
+    vault-7-rank: &6Lord
+    vault-7-permission: skyvault.rank.lord
+    vault-8-rank: &6Heroic
+    vault-8-permission: skyvault.rank.heroic
+    vault-9-rank: &6Immortal
+    vault-9-permission: skyvault.rank.immortal
+
+function skyvault_unlocked(p: player) :: number:
+    set {_uuid} to uuid of {_p}
+    if {skyvault.unlocked::%{_uuid}%} is not set:
+        set {skyvault.unlocked::%{_uuid}%} to {@starting-vaults}
+    if {skyvault.unlocked::%{_uuid}%} < 1:
+        set {skyvault.unlocked::%{_uuid}%} to 1
+    if {skyvault.unlocked::%{_uuid}%} > {@max-vaults}:
+        set {skyvault.unlocked::%{_uuid}%} to {@max-vaults}
+    return {skyvault.unlocked::%{_uuid}%}
+
+function skyvault_active(p: player) :: number:
+    set {_uuid} to uuid of {_p}
+    if {skyvault.viewing-vault::%{_uuid}%} is set:
+        return {skyvault.viewing-vault::%{_uuid}%}
+    return 1
+
+function skyvault_cost(vault: number) :: number:
+    if {_vault} <= 2:
+        return {@base-vault-cost}
+    set {_cost} to {@base-vault-cost}
+    set {_extra} to {_vault} - 2
+    loop {_extra} times:
+        set {_cost} to {_cost} * {@cost-multiplier}
+    return {_cost}
+
+function skyvault_cost_text(vault: number) :: text:
+    set {_cost} to skyvault_cost({_vault})
+    return "{@currency-symbol}%{_cost}%"
+
+function skyvault_balance(p: player) :: number:
+    if {data::balance::%{_p}%} is not set:
+        set {data::balance::%{_p}%} to 0
+    return {data::balance::%{_p}%}
+
+function skyvault_required_rank(vault: number) :: text:
+    if {_vault} is 5:
+        return "{@vault-5-rank}"
+    if {_vault} is 6:
+        return "{@vault-6-rank}"
+    if {_vault} is 7:
+        return "{@vault-7-rank}"
+    if {_vault} is 8:
+        return "{@vault-8-rank}"
+    if {_vault} is 9:
+        return "{@vault-9-rank}"
+    return ""
+
+function skyvault_has_rank(p: player, vault: number) :: boolean:
+    if {_vault} <= 4:
+        return true
+    if {_vault} is 5:
+        if {_p} has permission "{@vault-5-permission}":
+            return true
+        if {_p} has permission "{@vault-6-permission}":
+            return true
+        if {_p} has permission "{@vault-7-permission}":
+            return true
+        if {_p} has permission "{@vault-8-permission}":
+            return true
+        if {_p} has permission "{@vault-9-permission}":
+            return true
+    if {_vault} is 6:
+        if {_p} has permission "{@vault-6-permission}":
+            return true
+        if {_p} has permission "{@vault-7-permission}":
+            return true
+        if {_p} has permission "{@vault-8-permission}":
+            return true
+        if {_p} has permission "{@vault-9-permission}":
+            return true
+    if {_vault} is 7:
+        if {_p} has permission "{@vault-7-permission}":
+            return true
+        if {_p} has permission "{@vault-8-permission}":
+            return true
+        if {_p} has permission "{@vault-9-permission}":
+            return true
+    if {_vault} is 8:
+        if {_p} has permission "{@vault-8-permission}":
+            return true
+        if {_p} has permission "{@vault-9-permission}":
+            return true
+    if {_vault} is 9:
+        if {_p} has permission "{@vault-9-permission}":
+            return true
+    return false
+
+function skyvault_take_money(p: player, amount: number) :: boolean:
+    if {data::balance::%{_p}%} is not set:
+        set {data::balance::%{_p}%} to 0
+    if {data::balance::%{_p}%} is less than {_amount}:
+        return false
+    remove {_amount} from {data::balance::%{_p}%}
+    return true
+
+function skyvault_save(p: player, inv: inventory, vault: number):
+    set {_uuid} to uuid of {_p}
+    if {_vault} < 1:
+        stop
+    if {_vault} > {@max-vaults}:
+        stop
+
+    loop 45 times:
+        set {_storageSlot} to loop-number - 1
+        set {_guiSlot} to {_storageSlot} + 9
+        if slot {_guiSlot} of {_inv} is air:
+            delete {skyvault.item::%{_uuid}%::%{_vault}%::%{_storageSlot}%}
+        else:
+            set {skyvault.item::%{_uuid}%::%{_vault}%::%{_storageSlot}%} to slot {_guiSlot} of {_inv}
+
+function skyvault_open(p: player, vault: number):
+    if {_vault} < 1:
+        set {_vault} to 1
+    if {_vault} > {@max-vaults}:
+        set {_vault} to {@max-vaults}
+
+    set {_uuid} to uuid of {_p}
+    set {_unlocked} to skyvault_unlocked({_p})
+    if {_vault} > {_unlocked}:
+        set {_vault} to {_unlocked}
+
+    set {_gui} to a chest inventory with 6 rows named "{@vault-name} &8#%{_vault}%"
+
+    loop {@max-vaults} times:
+        set {_paneSlot} to loop-number - 1
+        set {_paneVault} to loop-number
+
+        if {_paneVault} <= {_unlocked}:
+            if {_paneVault} = {_vault}:
+                set {_pane} to lime stained glass pane named "&a&lVault %{_paneVault}% &8(&fOpen&8)" with lore "&7You are viewing this vault." and "&7Storage: &f45 slots" and "&8Status: &aSelected"
+            else:
+                set {_pane} to green stained glass pane named "&a&lVault %{_paneVault}%" with lore "&7Click to switch to this vault." and "&7Storage: &f45 slots" and "&8Status: &aUnlocked"
+        else:
+            if {_paneVault} = {_unlocked} + 1:
+                set {_price} to skyvault_cost_text({_paneVault})
+                set {_requiredRank} to skyvault_required_rank({_paneVault})
+                if {_requiredRank} is "":
+                    set {_pane} to red stained glass pane named "&c&lVault %{_paneVault}% &8(&fLocked&8)" with lore "&7Click to unlock this vault." and "&7Cost: &a%{_price}%" and "&8Reward: &f+45 storage slots"
+                else:
+                    set {_pane} to red stained glass pane named "&c&lVault %{_paneVault}% &8(&fLocked&8)" with lore "&7Click to unlock this vault." and "&7Required Rank: &f%{_requiredRank}%" and "&8Reward: &f+45 storage slots"
+            else:
+                set {_next} to {_unlocked} + 1
+                set {_requiredRank} to skyvault_required_rank({_paneVault})
+                if {_requiredRank} is "":
+                    set {_pane} to red stained glass pane named "&c&lVault %{_paneVault}% &8(&fLocked&8)" with lore "&7Unlock Vault %{_next}% first." and "&8Vaults unlock in order."
+                else:
+                    set {_pane} to red stained glass pane named "&c&lVault %{_paneVault}% &8(&fLocked&8)" with lore "&7Required Rank: &f%{_requiredRank}%" and "&8Unlock previous vaults first."
+
+        set slot {_paneSlot} of {_gui} to {_pane}
+
+    loop 45 times:
+        set {_storageSlot} to loop-number - 1
+        set {_guiSlot} to {_storageSlot} + 9
+        set slot {_guiSlot} of {_gui} to {skyvault.item::%{_uuid}%::%{_vault}%::%{_storageSlot}%}
+
+    set {skyvault.open::%{_uuid}%} to true
+    set {skyvault.viewing-vault::%{_uuid}%} to {_vault}
+    open {_gui} to {_p}
+
+function skyvault_buy(p: player, vault: number):
+    set {_uuid} to uuid of {_p}
+    set {_unlocked} to skyvault_unlocked({_p})
+
+    if {_vault} <= {_unlocked}:
+        skyvault_open({_p}, {_vault})
+        stop
+
+    set {_next} to {_unlocked} + 1
+    if {_vault} is not {_next}:
+        set {_requiredRank} to skyvault_required_rank({_vault})
+        if {_requiredRank} is not "":
+            if skyvault_has_rank({_p}, {_vault}) is false:
+                send "{@prefix}&cVault &f%{_vault}% &crequires &f%{_requiredRank}% &crank." to {_p}
+            else:
+                send "{@prefix}&cUnlock your previous vaults before opening Vault &f%{_vault}%&c." to {_p}
+        else:
+            send "{@prefix}&cUnlock Vault &f%{_next}% &cbefore unlocking Vault &f%{_vault}%&c." to {_p}
+        skyvault_open({_p}, {_unlocked})
+        stop
+
+    if skyvault_has_rank({_p}, {_vault}) is false:
+        set {_requiredRank} to skyvault_required_rank({_vault})
+        send "{@prefix}&cYou need &f%{_requiredRank}% &crank to unlock Vault &f%{_vault}%&c." to {_p}
+        skyvault_open({_p}, {_unlocked})
+        stop
+
+    set {_requiredRank} to skyvault_required_rank({_vault})
+    if {_requiredRank} is not "":
+        set {skyvault.unlocked::%{_uuid}%} to {_vault}
+        send "{@prefix}&aUnlocked Vault &f%{_vault}% &awith &f%{_requiredRank}% &arank." to {_p}
+        skyvault_open({_p}, {_vault})
+        stop
+
+    set {_cost} to skyvault_cost({_vault})
+    if skyvault_balance({_p}) is less than {_cost}:
+        set {_price} to skyvault_cost_text({_vault})
+        send "{@prefix}&cYou need &f%{_price}% &cto unlock Vault &f%{_vault}%&c." to {_p}
+        skyvault_open({_p}, {_unlocked})
+        stop
+
+    if skyvault_take_money({_p}, {_cost}) is false:
+        set {_price} to skyvault_cost_text({_vault})
+        send "{@prefix}&cYou need &f%{_price}% &cto unlock Vault &f%{_vault}%&c." to {_p}
+        skyvault_open({_p}, {_unlocked})
+        stop
+
+    set {skyvault.unlocked::%{_uuid}%} to {_vault}
+    set {_price} to skyvault_cost_text({_vault})
+    send "{@prefix}&aUnlocked Vault &f%{_vault}% &afor &f%{_price}%&a." to {_p}
+    skyvault_open({_p}, {_vault})
+
+function skyvault_purchase_dialog(p: player, vault: number):
+    set {_uuid} to uuid of {_p}
+    set {_unlocked} to skyvault_unlocked({_p})
+
+    set {_next} to {_unlocked} + 1
+    if {_vault} is not {_next}:
+        set {_requiredRank} to skyvault_required_rank({_vault})
+        if {_requiredRank} is not "":
+            if skyvault_has_rank({_p}, {_vault}) is false:
+                send "{@prefix}&cVault &f%{_vault}% &crequires &f%{_requiredRank}% &crank." to {_p}
+            else:
+                send "{@prefix}&cUnlock your previous vaults before opening Vault &f%{_vault}%&c." to {_p}
+        else:
+            send "{@prefix}&cUnlock Vault &f%{_next}% &cbefore unlocking Vault &f%{_vault}%&c." to {_p}
+        stop
+
+    if skyvault_has_rank({_p}, {_vault}) is false:
+        set {_requiredRank} to skyvault_required_rank({_vault})
+        send "{@prefix}&cYou need &f%{_requiredRank}% &crank to unlock Vault &f%{_vault}%&c." to {_p}
+        stop
+
+    set {skyvault.pending-buy::%{_uuid}%} to {_vault}
+    set {skyvault.pending-return::%{_uuid}%} to skyvault_active({_p})
+    set {skyvault.in-dialog::%{_uuid}%} to true
+    set {_price} to skyvault_cost_text({_vault})
+    set {_requiredRank} to skyvault_required_rank({_vault})
+    if {_requiredRank} is "":
+        set {_confirmLine} to "&l&a%{_price}%&r &7to buy"
+        set {_confirmTooltip} to "&7Pay %{_price}% and unlock this vault."
+        set {_confirmLabel} to "&aConfirm Purchase"
+    else:
+        set {_confirmLine} to "&7Required: &l&f%{_requiredRank}%"
+        set {_confirmTooltip} to "&7Unlock this vault with %{_requiredRank}% rank."
+        set {_confirmLabel} to "&aConfirm Unlock"
+
+    open new confirmation dialog to {_p}:
+        title: "&l&bVAULT %{_vault}% UPGRADE"
+        can_close_with_escape: false
+        body:
+            add plain message body:
+                contents: "%nl%%nl%      &l&fUNLOCK VAULT %{_vault}%?%nl%%nl%      %{_confirmLine}%&r%nl%%nl%      &l&f+45 &7storage slots%nl%%nl%"
+                width: 380
+        actions:
+            add callback action button:
+                label: "%{_confirmLabel}%"
+                tooltip: "%{_confirmTooltip}%"
+                trigger:
+                    if event-player is not set:
+                        stop
+                    set {_buyer} to event-player
+                    set {_buyerUUID} to uuid of {_buyer}
+                    set {_pendingVault} to {skyvault.pending-buy::%{_buyerUUID}%}
+                    delete {skyvault.pending-buy::%{_buyerUUID}%}
+                    delete {skyvault.pending-return::%{_buyerUUID}%}
+                    if {_pendingVault} is not set:
+                        delete {skyvault.in-dialog::%{_buyerUUID}%}
+                        send "{@prefix}&cThis purchase expired. Open your vault again." to {_buyer}
+                        stop
+                    skyvault_buy({_buyer}, {_pendingVault})
+                    delete {skyvault.in-dialog::%{_buyerUUID}%}
+            add callback action button:
+                label: "&cCancel"
+                tooltip: "&7Do not unlock this vault."
+                trigger:
+                    if event-player is not set:
+                        stop
+                    set {_buyer} to event-player
+                    set {_buyerUUID} to uuid of {_buyer}
+                    set {_returnVault} to {skyvault.pending-return::%{_buyerUUID}%}
+                    delete {skyvault.pending-buy::%{_buyerUUID}%}
+                    delete {skyvault.pending-return::%{_buyerUUID}%}
+                    if {_returnVault} is not set:
+                        set {_returnVault} to skyvault_active({_buyer})
+                    skyvault_open({_buyer}, {_returnVault})
+                    delete {skyvault.in-dialog::%{_buyerUUID}%}
+
+command /vault [<text>]:
+    aliases: /pv, /playervault, /skyvault
+    trigger:
+        if arg-1 is not set:
+            skyvault_open(player, skyvault_active(player))
+            stop
+
+        if arg-1 is "open":
+            skyvault_open(player, skyvault_active(player))
+            stop
+
+        if arg-1 is "info":
+            set {_unlocked} to skyvault_unlocked(player)
+            set {_slots} to {_unlocked} * 45
+            send "{@prefix}&fUnlocked vaults: &b%{_unlocked}%&7/&b{@max-vaults}" to player
+            send "{@prefix}&fStorage: &b%{_slots}% &7slots" to player
+            if {_unlocked} < {@max-vaults}:
+                set {_next} to {_unlocked} + 1
+                set {_price} to skyvault_cost_text({_next})
+                set {_requiredRank} to skyvault_required_rank({_next})
+                if {_requiredRank} is "":
+                    send "{@prefix}&fNext vault: &bVault %{_next}% &7for &b%{_price}%" to player
+                else:
+                    send "{@prefix}&fNext vault: &bVault %{_next}% &7requires &b%{_requiredRank}%" to player
+            else:
+                send "{@prefix}&aAll vaults are unlocked." to player
+            stop
+
+        send "{@prefix}&fCommands: &b/vault&7, &b/vault info" to player
+
+command /vaultadmin <text> <offlineplayer> [<integer>]:
+    permission: skyvault.admin
+    permission message: {@prefix}&cYou do not have permission to use this.
+    trigger:
+        set {_uuid} to uuid of arg-2
+
+        if arg-1 is "reset":
+            delete {skyvault.unlocked::%{_uuid}%}
+            delete {skyvault.item::%{_uuid}%::*}
+            send "{@prefix}&aReset vault data for &f%arg-2%&a." to player
+            stop
+
+        if arg-1 is "setvaults":
+            if arg-3 is not set:
+                send "{@prefix}&cUsage: /vaultadmin setvaults <player> <1-{@max-vaults}>" to player
+                stop
+            if arg-3 < 1:
+                send "{@prefix}&cVault count must be between 1 and {@max-vaults}." to player
+                stop
+            if arg-3 > {@max-vaults}:
+                send "{@prefix}&cVault count must be between 1 and {@max-vaults}." to player
+                stop
+            set {skyvault.unlocked::%{_uuid}%} to arg-3
+            send "{@prefix}&aSet &f%arg-2%'s &aunlocked vaults to &f%arg-3%&a." to player
+            stop
+
+        send "{@prefix}&cUsage: /vaultadmin reset <player> &7or &c/vaultadmin setvaults <player> <amount>" to player
+
+on right click on ender chest:
+    cancel event
+    skyvault_open(player, skyvault_active(player))
+
+on inventory click:
+    set {_uuid} to uuid of player
+    if {skyvault.open::%{_uuid}%} is not set:
+        if name of player's current inventory contains "{@vault-name}":
+            cancel event
+            close player's inventory
+        stop
+
+    set {_rawSlot} to raw index of event-slot
+    if {_rawSlot} < 0:
+        stop
+
+    if {_rawSlot} <= 8:
+        cancel event
+        set {_clickedVault} to {_rawSlot} + 1
+        set {_unlocked} to skyvault_unlocked(player)
+        set {_currentVault} to {skyvault.viewing-vault::%{_uuid}%}
+        if {_currentVault} is not set:
+            set {_currentVault} to 1
+
+        if {_clickedVault} <= {_unlocked}:
+            if {_clickedVault} = {_currentVault}:
+                stop
+            skyvault_save(player, event-inventory, {_currentVault})
+            set {skyvault.switching::%{_uuid}%} to true
+            skyvault_open(player, {_clickedVault})
+            stop
+
+        if {_clickedVault} = {_unlocked} + 1:
+            skyvault_save(player, event-inventory, {_currentVault})
+            skyvault_purchase_dialog(player, {_clickedVault})
+            stop
+
+        set {_next} to {_unlocked} + 1
+        set {_requiredRank} to skyvault_required_rank({_clickedVault})
+        if {_requiredRank} is not "":
+            if skyvault_has_rank(player, {_clickedVault}) is false:
+                send "{@prefix}&cVault &f%{_clickedVault}% &crequires &f%{_requiredRank}% &crank." to player
+            else:
+                send "{@prefix}&cUnlock your previous vaults before opening Vault &f%{_clickedVault}%&c." to player
+        else:
+            send "{@prefix}&cUnlock Vault &f%{_next}% &cbefore unlocking Vault &f%{_clickedVault}%&c." to player
+        stop
+
+on inventory drag:
+    set {_uuid} to uuid of player
+    if {skyvault.open::%{_uuid}%} is set:
+        cancel event
+        stop
+    if name of player's current inventory contains "{@vault-name}":
+        cancel event
+        close player's inventory
+
+on quit:
+    set {_uuid} to uuid of player
+    delete {skyvault.pending-buy::%{_uuid}%}
+    delete {skyvault.pending-return::%{_uuid}%}
+    delete {skyvault.in-dialog::%{_uuid}%}
+
+on join:
+    set {_uuid} to uuid of player
+    delete {skyvault.open::%{_uuid}%}
+    delete {skyvault.viewing-vault::%{_uuid}%}
+    delete {skyvault.switching::%{_uuid}%}
+    delete {skyvault.pending-buy::%{_uuid}%}
+    delete {skyvault.pending-return::%{_uuid}%}
+    delete {skyvault.in-dialog::%{_uuid}%}
+
+on inventory close:
+    set {_uuid} to uuid of player
+    if {skyvault.open::%{_uuid}%} is not set:
+        stop
+
+    if {skyvault.in-dialog::%{_uuid}%} is set:
+        set {_vault} to {skyvault.viewing-vault::%{_uuid}%}
+        if {_vault} is not set:
+            set {_vault} to 1
+        skyvault_save(player, event-inventory, {_vault})
+        stop
+
+    if {skyvault.switching::%{_uuid}%} is set:
+        delete {skyvault.switching::%{_uuid}%}
+        stop
+
+    set {_vault} to {skyvault.viewing-vault::%{_uuid}%}
+    if {_vault} is not set:
+        set {_vault} to 1
+    skyvault_save(player, event-inventory, {_vault})
+    delete {skyvault.open::%{_uuid}%}
+    delete {skyvault.viewing-vault::%{_uuid}%}

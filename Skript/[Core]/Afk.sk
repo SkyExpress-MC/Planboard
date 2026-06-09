@@ -1,0 +1,82 @@
+on load:
+    set {-afkArea} to location -194.436, 68, -20.3 in world "Spawnworld"
+
+options:
+    afk_reward_interval: 1800
+    afk_reward_interval_vip: 1680
+    afk_reward_interval_mvp: 1560
+    afk_reward_interval_lord: 1440
+    afk_reward_interval_heroic: 1320
+    afk_reward_interval_immortal: 1200
+    afk_title_entered: AFK Zone Entered
+    afk_subtitle_entered: Earn tokens while being AFK!
+    afk_title_left: AFK Zone Left
+    afk_subtitle_left: Timer reset.
+
+
+command /afk:
+    trigger:
+        set yaw of {-afkArea} to 180
+        teleport player to {-afkArea}
+        send "<gradient:#00FFCB:#00FFCB>Afk</gradient> &8» &aTeleported to the AFK area!"
+
+command /afktokens [<player>]:
+    trigger:
+        if arg-1 is not set:
+            send "<gradient:#00FFCB:#00FFCB>You have</gradient> &6%{afk.tokens::%player%}% <gradient:#00FFCB:#00FFCB>Afk Token(s)</gradient>&7."
+        else:
+            if player has permission "afk.admin":
+                send "<gradient:#00FFCB:#00FFCB>%arg-1%</gradient> has &6%{afk.tokens::%arg-1%}% <gradient:#00FFCB:#00FFCB>Afk Token(s)</gradient>."
+            else:
+                send "&cNo permission."
+
+command /afkgivetoken <player> <integer>:
+    trigger:
+        if player has permission "afk.admin":
+            add arg-2 to {afk.tokens::%arg-1%}
+            send "<gradient:#00FFCB:#00FFCB>Gave</gradient> &6%arg-2% <gradient:#00FFCB:#00FFCB>token(s) to %arg-1%</gradient>&7."
+            send "<gradient:#00FFCB:#00FFCB>You received</gradient> &6%arg-2% <gradient:#00FFCB:#00FFCB>token(s) from an admin</gradient>&7." to arg-1
+        else:
+            send "&cNo permission."
+
+
+on region enter:
+    name of region = "afkpool"
+    send title "<gradient:#0098FF:#0083FF>AFK Zone Entered</gradient>" with subtitle "&fEarn tokens while being AFK!" to player
+    set {afk.time::%player%} to 0
+    set {afk.running::%player%} to true
+    set {_p} to player
+    execute console command "/trail pink-dust %player%"
+    while {afk.running::%{_p}%} is true:
+        wait 1 second
+        if {afk.running::%{_p}%} is not true:
+            stop
+        add 1 to {afk.time::%{_p}%}
+        set {_elapsed} to {afk.time::%{_p}%}
+        set {_interval} to {@afk_reward_interval}
+        if {_p} has permission "group.immortal":
+            set {_interval} to {@afk_reward_interval_immortal}
+        else if {_p} has permission "group.heroic":
+            set {_interval} to {@afk_reward_interval_heroic}
+        else if {_p} has permission "group.lord":
+            set {_interval} to {@afk_reward_interval_lord}
+        else if {_p} has permission "group.mvp":
+            set {_interval} to {@afk_reward_interval_mvp}
+        else if {_p} has permission "group.vip":
+            set {_interval} to {@afk_reward_interval_vip}
+        set {_remain} to {_interval} - (mod({_elapsed}, {_interval}))
+        set {_min} to floor({_remain} / 60)
+        set {_sec} to mod({_remain}, 60)
+        send action bar "&7⪼ <gradient:#00FFCB:#00FFCB>Token in</gradient> &6%{_min}%m %{_sec}%s &7⪻" to {_p}
+        if mod({_elapsed}, {_interval}) = 0:
+            add 1 to {afk.tokens::%{_p}%}
+            send title "<gradient:#00FFCB:#00FFCB>+1 AFK Token!</gradient>" with subtitle "&fYou now have &e%{afk.tokens::%{_p}%}% &ftokens." to {_p} for 3 seconds
+            send "<gradient:#00FFCB:#00FFCB>Afk</gradient> &8» &aYou earned an AFK Token! Total: &e%{afk.tokens::%{_p}%}%" to {_p}
+
+
+on region leave:
+    name of region = "afkpool"
+    set {afk.running::%player%} to false
+    delete {afk.time::%player%}
+    send title "<gradient:#FF0034:#98071E>AFK ZONE LEFT</gradient>" with subtitle "&fTimer reset." to player
+    make player execute command "/trail off"

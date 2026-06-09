@@ -1,0 +1,287 @@
+############################
+# CataMines Rework
+# Made by ItzRepsac_
+# Dependencies:
+#    - Skript
+#    - Worldguard (Regions)
+############################
+
+on load:
+    set {_startMs} to unix timestamp of now
+
+    if {blocks::*} is not set:
+        set {blocks::*} to every block type
+        loop {blocks::*}:
+            set {_name} to "%loop-value%"
+            replace all " " with "_" in {_name}
+            add {_name} to {blockNames::*}
+
+    # Rebuild mineNames list from saved data (for tab completion)
+    clear {mineNames::*}
+    loop indexes of {mines::*}:
+        set {_id} to loop-value parsed as integer
+        if {mines::%{_id}%::region} is set:
+            add {mines::%{_id}%::region} to {mineNames::*}
+
+    # Initialize cooldown settings
+    if {mineCooldown} is not set:
+        set {mineCooldown} to 10
+    set {mineTimer} to 0
+
+    set {_endMs} to unix timestamp of now
+    set {_elapsed} to round(({_endMs} - {_startMs}) * 1000)
+    send "&8[&6Mine_System&8] &aLoaded a total of &e%size of {mineNames::*}% &amines &8(&7%{_elapsed}%ms&8)" to console
+
+every second:
+    add 1 to {mineTimer}
+    if {mineTimer} >= {mineCooldown}:
+        set {mineTimer} to 0
+        loop indexes of {mines::*}:
+            fillMine(loop-value parsed as integer)
+
+function registerMine(region: string, block1: item type, block1percent: integer, block2: item type, block2percent: integer, spawn: location):
+    set {_id} to 1
+    loop indexes of {mines::*}:
+        set {_existing} to loop-value parsed as integer
+        if {_existing} >= {_id}:
+            set {_id} to {_existing} + 1
+
+    set {mines::%{_id}%::id}         to {_id}
+    set {mines::%{_id}%::region}     to {_region}
+    set {mines::%{_id}%::block1}     to {_block1}
+    set {mines::%{_id}%::block1Perc} to {_block1percent}
+    set {mines::%{_id}%::block2}     to {_block2}
+    set {mines::%{_id}%::block2Perc} to {_block2percent}
+    set {mines::%{_id}%::spawn}      to {_spawn}
+
+    add {_region} to {mineNames::*}
+
+function fillMine(id: integer):
+    if {mines::%{_id}%::region} is not set:
+        stop
+    set {_fullName}   to {mines::%{_id}%::region}
+    set {_block1}     to {mines::%{_id}%::block1}
+    set {_block1Perc} to {mines::%{_id}%::block1Perc}
+    set {_block2}     to {mines::%{_id}%::block2}
+    set {_spawn}      to {mines::%{_id}%::spawn}
+
+    set {_parts::*} to {_fullName} split at "_"
+    set {_worldName} to {_parts::1}
+    set {_regionName} to {_fullName}
+
+    # Teleport anyone inside the region out before refill
+    if {_spawn} is set:
+        loop all players in world {_worldName}:
+            if regions at loop-player contains (region {_regionName} in world {_worldName}):
+                teleport loop-player to {_spawn}
+                #send "&7You were teleported out of the mine before it refilled." to loop-player
+
+    wait 5 ticks
+
+    loop blocks of region {_regionName} in world {_worldName}:
+        set {_roll} to random integer from 1 to 100
+        if {_roll} <= {_block1Perc}:
+            set loop-block to {_block1}
+        else:
+            set loop-block to {_block2}
+
+command /mine <string> [<string>] [<item type>] [<integer>] [<item type>] [<integer>]:
+    permission: sk.content-team.createmine
+    permission message: "&cNo permission."
+    usage: &cUsage: /mine create <world>_<name> <item1> <percent1> <item2> <percent2>
+    trigger:
+        if plugin "WorldGuard" is enabled:
+            if arg-1 is "create":
+                if arg-2 is set:
+                    if arg-2 does not contain "_":
+                        send "&cMine name must be formatted as &e<world>_<name> &c(e.g. &eSpawnWorld_wood&c)."
+                        stop
+                    if arg-3 is set:
+                        if arg-4 is set:
+                            if arg-5 is set:
+                                if arg-6 is set:
+                                    set {_totalPercentage} to arg-4 + arg-6
+                                    if check_percentage({_totalPercentage}, player) is false:
+                                        stop
+                                    else:
+                                        make player execute command "/rg create %arg-2%"
+                                        make player execute command "/rg flag %arg-2% block-break allow"
+                                        registerMine(arg-2, arg-3, arg-4, arg-5, arg-6, location of player)
+                                        send "&8&n=====[&2✔ &3Mine Created &2✔&8]====="
+                                        send "&7Mine Name: &e %arg-2%"
+                                        send "&7Block 1: %arg-3% &8(&7&o%arg-4%％)"
+                                        send "&7Block 2: %arg-5% &8(&7&o%arg-6%％)"
+                                        send "&7Spawn: &e%location of player%"
+                                        stop
+                            else:
+                                set {_totalPercentage} to arg-4
+                                if check_percentage({_totalPercentage}, player) is false:
+                                    stop
+                                else:
+                                    make player execute command "/rg create %arg-2%"
+                                    make player execute command "/rg flag %arg-2% block-break allow"
+                                    make player execute command "/rg flag %arg-2% pvp allow"
+                                    registerMine(arg-2, arg-3, arg-4, arg-3, arg-4, location of player)
+                                    send "&8&n=====[&2✔ &3Mine Created &2✔&8]====="
+                                    send "&7Mine Name: &e %arg-2%"
+                                    send "&7Block 1: %arg-3% &8(&7&o%arg-4%％)"
+                                    send "&7Spawn: &e%location of player%"
+                                    stop
+                        else:
+                            send "&4Please specify a percentage for %arg-3%"
+                            send "&4&cMake sure to have 100％ total."
+                            stop
+                    else:
+                        send "&cPlease specify a block for the mine to contain."
+                        stop
+                else:
+                    send "&cYou need to specify a name to create a mine"
+                    stop
+
+            if arg-1 is "redefine":
+                if arg-2 is set:
+                    manage_mine(arg-2, "redefine", player)
+                else:
+                    send "&cUsage: /mine redefine <name>" to player
+
+            if arg-1 is "delete":
+                if arg-2 is set:
+                    manage_mine(arg-2, "delete", player)
+                else:
+                    send "&cUsage: /mine delete <name>" to player
+
+            if arg-1 is "resetall":
+                delete {mines::*}
+                loop {mineNames::*}:
+                    make player execute command "/rg delete %loop-value%"
+                wait 1 second
+                clear {mineNames::*}
+                send "&aAll mine data wiped."
+
+            if arg-1 is "changetimer":
+                set {_arg2} to arg-2
+                set {_parsed} to {_arg2} parsed as integer
+                if {_parsed} is not set:
+                    send "&cUsage: /mine changetimer <seconds>"
+                    stop
+                if {_parsed} < 1:
+                    send "&cTimer must be at least 1 second."
+                    stop                
+                set {mineCooldown} to {_parsed}
+                set {mineTick} to 0
+                send "&aMine refill timer set to &e%arg-2%&a seconds."
+                stop
+
+            if arg-1 is "gui":
+                create_gui(player)
+
+            if arg-1 is "help":
+                helpgui_mines(player)
+
+        else:
+            send "&cTo use this skript, you need to have WorldGuard installed."
+
+on tab complete of "/mine":
+    set {_world} to player's world
+    set tab completions for position 1 to "create", "redefine", "delete", "resetall", "changetimer", "gui" and "help"
+    if tab arg-1 is "redefine" or "delete":
+        loop {mineNames::*}:
+            add loop-value to {_completions::*}
+        set tab completions for position 2 to {_completions::*}
+    if tab arg-1 is "create":
+        set tab completions for position 2 to "%{_world}%_<name>"
+        set tab completions for position 3 to {blockNames::*}
+        set tab completions for position 4 to "<block_1_percent>"
+        set tab completions for position 5 to {blockNames::*}
+        set tab completions for position 6 to "<block_2_percent>"
+    if tab arg-1 is "changetimer":
+        set tab completions for position 4 to "<seconds>"
+
+local function manage_mine(name: string, action: string, p: player):
+    loop indexes of {mines::*}:
+        set {_id} to loop-value parsed as integer
+        if {mines::%{_id}%::region} is {_name}:
+            set {_parts::*} to {_name} split at "_"
+            set {_worldName} to {_parts::1}
+            set {_spawn} to {mines::%{_id}%::spawn}
+
+            # Get players out before clearing
+            if {_spawn} is set:
+                loop all players in world {_worldName}:
+                    if regions at loop-player contains (region {_name} in world {_worldName}):
+                        teleport loop-player to {_spawn}
+
+            loop blocks of region {_name} in world {_worldName}:
+                set loop-block to air
+            wait 10 ticks
+            if {_action} = "delete":
+                delete {mines::%{_id}%::*}
+                remove {_name} from {mineNames::*}
+            make {_p} execute command "/rg %{_action}% %{_name}%"
+            send "&aAction: &e%{_action}%&a executed for &e%{_name}%!" to {_p}
+            stop
+    send "&cNo mine named &e%{_name}%&c was found." to {_p}
+
+local function create_gui(p: player):
+    # Count valid mines manually (can't use `size of {mines::*}` with nested data)
+    set {_size} to 0
+    loop indexes of {mines::*}:
+        set {_id} to loop-value parsed as integer
+        if {mines::%{_id}%::region} is set:
+            add 1 to {_size}
+
+    if {_size} is 0:
+        send "&cThere are no mines registered." to {_p}
+        stop
+
+    set {_rows} to ceil({_size} / 9)
+    if {_rows} > 6:
+        set {_rows} to 6
+    set {_maxSlots} to {_rows} * 9
+
+    create a gui with virtual chest inventory with {_rows} rows named "&8&lMines &7(%{_size}% registered)":
+        set {_slot} to 0
+        loop indexes of {mines::*}:
+            set {_id} to loop-value parsed as integer
+
+            if {mines::%{_id}%::region} is not set:
+                continue
+
+            if {_slot} >= {_maxSlots}:
+                exit loop
+
+            set {_region}     to {mines::%{_id}%::region}
+            set {_block1}     to {mines::%{_id}%::block1}
+            set {_block1Perc} to {mines::%{_id}%::block1Perc}
+            set {_block2}     to {mines::%{_id}%::block2}
+            set {_block2Perc} to {mines::%{_id}%::block2Perc}
+
+            # Build lore
+            set {_lore::1} to "&7Region: &e%{_region}%"
+            set {_lore::2} to "&8&m--------------------"
+            set {_lore::3} to "&7Block 1: &f%{_block1}% &8(&a%{_block1Perc}%%%&8)"
+            if {_block2Perc} is not 0:
+                set {_lore::4} to "&7Block 2: &f%{_block2}% &8(&a%{_block2Perc}%%%&8)"
+            else:
+                set {_lore::4} to "&7Block 2: &8&oN/A"
+            set {_lore::5} to "&8&m--------------------"
+            set {_lore::6} to "&7ID: &e%{_id}%"
+
+            if {_block1Perc} >= {_block2Perc}:
+                set {_icon} to {_block1}
+            else:
+                set {_icon} to {_block2}
+            set name of {_icon} to "&6&l%{_region}%"
+            set lore of {_icon} to {_lore::*}
+
+            make gui slot {_slot} with {_icon}
+            add 1 to {_slot}
+            clear {_lore::*}
+
+    open the last gui for {_p}
+
+local function check_percentage(total: integer, p: player) :: boolean:
+    if {_total} != 100:
+        send "&cPercentages must add up to 100! (got &4%{_total}%&c)" to {_p}
+        return false
+    return true

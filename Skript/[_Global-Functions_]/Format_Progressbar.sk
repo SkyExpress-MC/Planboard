@@ -1,0 +1,41 @@
+###############################################
+# Made by ItzRepsac_
+# Requires: Skript
+# Tested on: 1.21.6
+# License: MIT License
+################################################
+#============ Create first letter of a string to capital letter ============#
+function toCapital(name: string):: string:
+    set {_firstChar} to first character of {_name} in upper case
+    set {_restOfName} to subtext of {_name} from characters 2 to length of {_name}
+    set {_nameWithCapital} to "%{_firstChar}%%{_restOfName}%"
+    return {_nameWithCapital}
+
+
+
+
+
+
+
+#=========== This creates a progressbar for the players actionbar. ============#
+# When its called, put in a current value and a max value. This calculates the % of progress.
+# The totalbars is a text with how long you want the bar to be.                               
+function GetProgress(type: string, current: number, max: number, totalBars: number) :: string:
+    set {_value} to {_current} / {_max}
+    if {_type} = "percentage":
+        set {_percent} to floor({_value} * 100)
+        return "%{_percent}%"
+
+    if {_type} = "bar":
+        if {_value} < 0:
+            set {_value} to 0
+        if {_value} > 1:
+            set {_value} to 1
+        set {_filledBars} to floor({_value} * {_totalBars})
+        set {_bar} to ""
+        loop {_totalBars} times:
+            if loop-number <= {_filledBars}:
+                add "§a•" to {_bar}
+            else:
+                add "§c•" to {_bar}
+        return {_bar}

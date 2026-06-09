@@ -1,0 +1,189 @@
+
+
+on death of player:
+    if attacker is a player:
+        set {_i} to a random integer between 1 and size of {-deathmsgs::*}
+        set {_verb} to {-deathmsgs::%{_i}%}
+        set the death message to " &c☠ %victim% &7%{_verb}% &c%attacker% %DisplayTool(attacker)%"
+    else:
+        set the death message to ""
+
+
+command /pvp:
+    description: Toggle PvP for yourself
+    trigger:
+        if {_playerStreak} >= 5:
+            send "%{prefix}% &cCannot toggle pvp off while on a kill streak of 5 or more"
+        else if {pvp::%player%} is true:
+            set {pvp::%player%} to false
+            send "%{prefix}% &cPvP disabled. &7You can no longer be hit by players or ability effects."
+        else:
+            set {pvp::%player%} to true
+            send "%{prefix}% &aPvP enabled. &7You can now be hit by players or ability effects."
+        play sound "ui.button.click" at player for player
+
+on exit of region named "spawnarea":
+    send "%{prefix}% &cPvP &7is now &cenabled&7!" to player
+
+on enter of region named "spawnarea":
+    if {combattag::%player's uuid%} is set:
+        cancel event
+        send "%{prefix}%&7You may not enter spawn while in combat." to player
+    else:
+        send "%{prefix}% &aPvP &7is now &adisabled&7!" to player
+
+
+
+
+
+on death of player:
+    set {_victimStreak} to {killstreak::%victim%}
+    if {_victimStreak} is not set:
+        set {_victimStreak} to 0
+
+    set {killstreak::%victim%} to 0
+
+    if attacker is not a player:
+        stop
+
+
+    # --- Bounty reward (only if victim had a killstreak) ---
+    if {_victimStreak} >= 1:
+        set {_reward} to {_victimStreak} * 1000
+        if {_reward} > 20000:
+            set {_reward} to 20000
+        add {_reward} to {data::balance::%attacker%}
+        send "%{prefix}% <gray>You claimed a <gradient:#DCDE1C:#FF6A04><bold>$%{_reward}%</bold></gradient> <gray>bounty from <white>%victim%<gray>!" to attacker
+
+    # --- Killstreak tracking ---
+    add 1 to {killstreak::%attacker%}
+    set {_streak} to {killstreak::%attacker%}
+
+    if {_streak} >= 5:
+        set {_tier} to floor({_streak} / 5)
+        set {_preset} to {_tier}
+        while {_preset} > 6:
+            remove 6 from {_preset}
+
+        if {_preset} is 1:
+            set {_gradient} to "<gradient:#DCDE1C:#FF6A04>"
+        else if {_preset} is 2:
+            set {_gradient} to "<gradient:#00F5FF:#7A5CFF>"
+        else if {_preset} is 3:
+            set {_gradient} to "<gradient:#FF2D95:#FFB000>"
+        else if {_preset} is 4:
+            set {_gradient} to "<gradient:#39FF88:#00C2FF>"
+        else if {_preset} is 5:
+            set {_gradient} to "<gradient:#FF3131:#FFE600>"
+        else:
+            set {_gradient} to "<gradient:#B967FF:#FF4FD8>"
+
+        set {_title} to "%{_gradient}%<bold>%{_streak}% KILLSTREAK!</bold></gradient>"
+        set {_subtitle} to "<gray>%victim% <white>has been eliminated!"
+        set {_chat} to "%{_gradient}%<bold>%attacker%</bold></gradient> <gray>is on a %{_gradient}%<bold>%{_streak}%</bold></gradient> <gray>killstreak!"
+
+        # Fixed: removed invalid "for 3 seconds" — use separate fade/stay options if needed
+        send title "%{_title}%" with subtitle "%{_subtitle}%" to attacker
+
+        play sound "entity.player.levelup" at attacker for attacker
+        play sound "entity.firework_rocket.blast" at attacker for attacker
+
+        # Fixed: "at attacker" directly instead of "at location of attacker"
+        play 60 flame particles at attacker
+        play 35 crit particles at attacker
+        set {_milestoneCheck} to floor({_streak} / 5) * 5
+        if {_milestoneCheck} is {_streak}:
+            send "%{prefix}% %{_chat}%" to all players
+
+
+
+on death of player:
+    if attacker is a player:
+        set {_deathmsg} to a random integer between 1 and 6
+        if {_deathmsg} = 1:
+            set the death message to " &c☠ %victim% &7was obliterated by &c%attacker% %DisplayTool(attacker)%"
+        else if {_deathmsg} = 2:
+            set the death message to " &c☠ %victim% &7was squashed by &c%attacker% %DisplayTool(attacker)%"
+        else if {_deathmsg} = 3:
+            set the death message to " &c☠ %victim% &7was KO'd by &c%attacker% %DisplayTool(attacker)%"
+        else if {_deathmsg} = 4:
+            set the death message to " &c☠ %victim% &7got smacked by &c%attacker% %DisplayTool(attacker)%"
+        else if {_deathmsg} = 5:
+            set the death message to " &c☠ %victim% &7was beaten by &c%attacker% %DisplayTool(attacker)%"
+        else:
+            set the death message to " &c☠ %victim% &7got dunked on by &c%attacker% %DisplayTool(attacker)%"
+    else:
+        set the death message to ""
+
+on damage of player:
+    if attacker is a player:
+        if {pvp::%victim%} is false:
+            send action bar "&cSorry, %victim% has PVP disabled, better luck next time!" to attacker
+            cancel event
+        if {pvp::%attacker%} is false:
+            send action bar "&cHey numbnuts! your pvp is off!" to attacker
+            cancel event
+
+############# COMBAT TAG SYSTEM #############
+
+options:
+    duration: 20
+
+on load:
+    add "spawn", "tpa" and "warp" to {-blockedcmds::*}
+
+on death:
+    victim is a player
+    delete {combattag::%victim%}
+
+on damage:
+    attacker is a player
+    victim is a player
+    "%damage cause%" contains "attack"
+    {pvp::%attacker%} is not false
+    {pvp::%victim%} is not false
+
+    applyCombatTag(attacker, victim)
+    applyCombatTag(victim, attacker)
+
+on command:
+    {combattag::%player%} is set
+    loop {blockedcmds::*}:
+        if command is loop-value:
+            cancel event
+            send "%{prefix}%&cYou may not execute this command while in combat!" to player
+            stop
+
+on right click:
+    {combattag::%player's uuid%} is set
+    if player's tool is firework rocket:
+        cancel event
+    else if player's offhand tool is firework rocket:
+        cancel event
+
+on quit:
+    {combattag::%player's uuid%} is set
+    broadcast "%{prefix}%&c%player% just combat logged!"
+    kill player
+    delete {combattag::%player's uuid%}
+
+#################### Helper functions ####################
+# Apply Combat tag for the player
+local function applyCombatTag(player1: player, player2: player):
+    if {combattag::%{_player1}%} is not set:
+        send "&c&lCombat Tag!" to {_player1}
+        send "%{prefix}%You hit %{_player2}%! You may not go to spawn now." to {_player1}
+        set {combattag::%{_player1}%} to now
+        tagLoop({_player1})
+    else:
+        set {combattag::%{_player1}%} to now
+
+# Check if player is still in combat
+function tagLoop(p: player):
+    while {_p} is online:
+        {combattag::%{_p}'s uuid%} is set
+        if difference between {combattag::%{_p}'s uuid%} and now is greater than {@duration} seconds:
+            delete {combattag::%{_p}'s uuid%}
+            send "%{prefix}%&aYou are out of combat, you may go to spawn now!" to {_p}
+            stop
+        wait 1 second

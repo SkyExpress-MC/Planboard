@@ -1,0 +1,28 @@
+###############################################
+# Made by ItzRepsac_
+# Requires: Skript
+# Tested on: 1.21.6
+# License: MIT License
+################################################
+function formatNumbers(n: number) :: text:
+	set {_data} to "VgT,120|OtT,117|SptT,114|SgT,111|QntT,108|QtT,105|TtG,102|DtG,99|UtG,96|TgT,93|Nvg,90|Ovg,87|Spv,84|Svg,81|Qvg,78|Qav,75|Tvg,72|Dvg,69|Uvg,66|Vg,63|NvD,60|Od,57|St,54|Sd,51|Qd,48|Qt,45|Tdc,42|Ddc,39|Udc,36|Dc,33|No,30|Oc,27|Sp,24|Sx,21|Qt,18|Q,15| Trillion,12| Billion,9| Million,6|K,3"
+	loop split {_data} at "|":
+		set {_s::*} to split loop-value at ","
+		{_n} >= 10 ^ {_s::2} parsed as number
+		return "%{_n} / 10 ^ {_s::2} parsed as number%%{_s::1}%"
+	return "%{_n}%"
+
+function formatNumberWithCommas(n: integer) :: text:
+    if "%{_n}%" contains ".":
+        set {_s::*} to split "%{_n}%" at "."
+        set {_n} to "%splitToText({_s::1})%.%last 2 characters of {_s::2}%"
+        return "%{_n}%"
+    else:
+        set {_n} to splitToText("%{_n}%")
+        return "%{_n} ? 0%"
+
+function splitToText(b: text) :: text:
+    if length of {_b} > 3:
+        return "%splitToText(first length of {_b} - 3 characters of {_b})%,%last 3 characters of {_b}%"
+    return {_b}
+

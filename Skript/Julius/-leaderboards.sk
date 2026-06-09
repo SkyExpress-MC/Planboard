@@ -1,0 +1,320 @@
+options:
+    prefix: &8[&bLeaderboards&8]&r
+    top-size: 10
+    line-space: 0.28
+
+# Total-only leaderboard Skript.
+# Reads only your original variables:
+# {data::prestige::*}, {data::level::*}, {data::blocks_mined::*}, {data::kills::*}
+
+on load:
+    set {codexlb::anim} to 0
+    set {codexlb::refresh-left} to 60
+    if {codexlb::quiet-commands} is not set:
+        make console execute command "gamerule sendCommandFeedback false"
+        make console execute command "gamerule logAdminCommands false"
+        set {codexlb::quiet-commands} to true
+    loop all players:
+        cache_codexlb_name(loop-player)
+    wait 1 tick
+    purge_all_codexlb_armor_stands()
+    delete {codexlb::stands::*}
+    render_all_codexlb()
+
+on unload:
+    loop {codexlb::boards::*}:
+        clear_codexlb(loop-index)
+
+on join:
+    cache_codexlb_name(player)
+
+every 3 seconds:
+    add 1 to {codexlb::anim}
+    if {codexlb::anim} > 4:
+        set {codexlb::anim} to 0
+    subtract 3 from {codexlb::refresh-left}
+    if {codexlb::refresh-left} < 0:
+        set {codexlb::refresh-left} to 0
+    loop {codexlb::boards::*}:
+        set {_footer} to {codexlb::boards::%loop-index%::footer}
+        if {_footer} is not set:
+            set {_footer} to 15
+        set {_stand} to {codexlb::stands::%loop-index%::%{_footer}%}
+        if {_stand} is set:
+            set name of {_stand} to colored codexlb_anim()
+
+every 60 seconds:
+    set {codexlb::refresh-left} to 60
+    loop all players:
+        cache_codexlb_name(loop-player)
+    render_all_codexlb()
+
+command /leaderboard <text> [<text>]:
+    aliases: /lb, /lbs
+    permission: leaderboard.admin
+    permission message: {@prefix} &cYou do not have permission.
+    trigger:
+        if arg-1 is "create":
+            if player is not set:
+                send "{@prefix} &cOnly players can create leaderboards." to sender
+                stop
+            set {_stat} to lowercase arg-2
+            if {_stat} is not "prestige":
+                if {_stat} is not "level":
+                    if {_stat} is not "blocks":
+                        if {_stat} is not "kills":
+                            send "{@prefix} &cUsage: /lb create <prestige|level|blocks|kills>" to player
+                            stop
+            add 1 to {codexlb::next-id::%{_stat}%}
+            set {_id} to "%{_stat}%-%{codexlb::next-id::%{_stat}%}%"
+            while {codexlb::boards::%{_id}%} is set:
+                add 1 to {codexlb::next-id::%{_stat}%}
+                set {_id} to "%{_stat}%-%{codexlb::next-id::%{_stat}%}%"
+            set {codexlb::boards::%{_id}%} to {_stat}
+            set {codexlb::boards::%{_id}%::loc} to location of player
+            add 2.6 to y-coordinate of {codexlb::boards::%{_id}%::loc}
+            render_codexlb({_id})
+            send "{@prefix} &aCreated &f%{_id}%&a." to player
+            stop
+
+        if arg-1 is "delete" or "remove":
+            if arg-2 is not set:
+                send "{@prefix} &cUsage: /lb delete <id>" to sender
+                stop
+            delete_codexlb(arg-2)
+            send "{@prefix} &aDeleted &f%arg-2%&a." to sender
+            stop
+
+        if arg-1 is "clearall" or "resetall":
+            purge_all_codexlb_armor_stands()
+            delete {codexlb::boards::*}
+            delete {codexlb::stands::*}
+            delete {codexlb::next-id::*}
+            send "{@prefix} &aRemoved all leaderboard boards. Stats were not changed." to sender
+            stop
+
+        if arg-1 is "cleanup":
+            if player is not set:
+                send "{@prefix} &cOnly players can use cleanup." to sender
+                stop
+            set {_r} to 10
+            if arg-2 is set:
+                set {_r} to arg-2 parsed as number
+            if {_r} is not set:
+                set {_r} to 10
+            set {_removed} to 0
+            loop all armor stands in radius {_r} around player:
+                kill loop-entity
+                add 1 to {_removed}
+            send "{@prefix} &aRemoved &f%{_removed}% &aarmor stands nearby." to player
+            stop
+
+        if arg-1 is "refresh":
+            set {codexlb::refresh-left} to 60
+            render_all_codexlb()
+            send "{@prefix} &aLeaderboards refreshed." to sender
+            stop
+
+        if arg-1 is "rebuild":
+            purge_all_codexlb_armor_stands()
+            delete {codexlb::stands::*}
+            render_all_codexlb()
+            send "{@prefix} &aLeaderboards rebuilt." to sender
+            stop
+
+        if arg-1 is "list":
+            send "&bLeaderboards:" to sender
+            loop {codexlb::boards::*}:
+                send "&7- &f%loop-index% &8(&7%loop-value%&8)" to sender
+            stop
+
+        send "&bLeaderboard Commands:" to sender
+        send "&7/lb create <prestige|level|blocks|kills>" to sender
+        send "&7/lb delete <id>" to sender
+        send "&7/lb clearall" to sender
+        send "&7/lb cleanup [radius]" to sender
+        send "&7/lb refresh" to sender
+        send "&7/lb rebuild" to sender
+        send "&7/lb list" to sender
+
+function render_all_codexlb():
+    loop {codexlb::boards::*}:
+        render_codexlb(loop-index)
+
+function render_codexlb(id: text):
+    set {_stat} to {codexlb::boards::%{_id}%}
+    if {_stat} is not set:
+        stop
+    set {_loc} to {codexlb::boards::%{_id}%::loc}
+    set {_accent} to codexlb_color({_stat})
+    set {_line} to 0
+
+    lbline({_id}, {_loc}, {_line}, "&8&m━━━━━━━━━━━━━━")
+    add 1 to {_line}
+    lbline({_id}, {_loc}, {_line}, "%{_accent}%&l%codexlb_title({_stat})%")
+    add 1 to {_line}
+    lbline({_id}, {_loc}, {_line}, "&8┃ &7Viewing &fTotal &8┃")
+    add 1 to {_line}
+    lbline({_id}, {_loc}, {_line}, "&8&m━━━━━━━━━━━━━━")
+    add 1 to {_line}
+
+    fill_codexlb({_stat})
+    loop {@top-size} times:
+        set {_rank} to loop-number
+        set {_name} to ""
+        set {_value} to -1
+        loop {codexlb::tmp::*}:
+            if loop-value-2 > {_value}:
+                set {_name} to loop-index
+                set {_value} to loop-value-2
+        if {_value} > -1:
+            set {_tag} to "&7#%{_rank}%"
+            if {_rank} is 1:
+                set {_tag} to "&6&l#1"
+            if {_rank} is 2:
+                set {_tag} to "&f&l#2"
+            if {_rank} is 3:
+                set {_tag} to "&c&l#3"
+            lbline({_id}, {_loc}, {_line}, "%{_tag}% &f%codexlb_name({_name})% &8• %{_accent}%%{_value}%")
+            delete {codexlb::tmp::%{_name}%}
+        else:
+            lbline({_id}, {_loc}, {_line}, "&7#%{_rank}% &8Empty &8• &7---")
+        add 1 to {_line}
+
+    delete {codexlb::tmp::*}
+    lbline({_id}, {_loc}, {_line}, "&8&m━━━━━━━━━━━━━━")
+    add 1 to {_line}
+    lbline({_id}, {_loc}, {_line}, codexlb_anim())
+    set {codexlb::boards::%{_id}%::footer} to {_line}
+    add 1 to {_line}
+    lbline({_id}, {_loc}, {_line}, "&7Refreshing in &f60 Seconds")
+    trim_codexlb({_id}, {_line})
+
+function fill_codexlb(stat: text):
+    delete {codexlb::tmp::*}
+    if {_stat} is "prestige":
+        loop {data::prestige::*}:
+            if loop-value > 0:
+                set {codexlb::tmp::%loop-index%} to loop-value
+    if {_stat} is "level":
+        loop {data::level::*}:
+            if loop-value > 0:
+                set {codexlb::tmp::%loop-index%} to loop-value
+    if {_stat} is "blocks":
+        loop {data::blocks_mined::*}:
+            if loop-value > 0:
+                set {codexlb::tmp::%loop-index%} to loop-value
+    if {_stat} is "kills":
+        loop {data::kills::*}:
+            if loop-value > 0:
+                set {codexlb::tmp::%loop-index%} to loop-value
+
+function lbline(id: text, base: location, n: number, text: text):
+    set {_stand} to {codexlb::stands::%{_id}%::%{_n}%}
+    if {_stand} is set:
+        set name of {_stand} to colored {_text}
+        stop
+    set {_l} to {_base}
+    set {_off} to {@line-space} * {_n}
+    subtract {_off} from y-coordinate of {_l}
+    spawn armor stand at {_l}
+    set {_stand} to last spawned entity
+    set name of {_stand} to colored {_text}
+    make {_stand} invisible
+    set gravity of {_stand} to false
+    make console execute command "minecraft:data merge entity %uuid of {_stand}% {CustomNameVisible:1b,Invisible:1b,NoGravity:1b,Invulnerable:1b,Silent:1b}"
+    set {codexlb::stands::%{_id}%::%{_n}%} to {_stand}
+
+function trim_codexlb(id: text, last: number):
+    loop {codexlb::stands::%{_id}%::*}:
+        set {_n} to loop-index
+        if {_n} > {_last}:
+            kill loop-value
+            delete {codexlb::stands::%{_id}%::%loop-index%}
+
+function clear_codexlb(id: text):
+    loop {codexlb::stands::%{_id}%::*}:
+        kill loop-value
+    delete {codexlb::stands::%{_id}%::*}
+
+function purge_all_codexlb_armor_stands():
+    loop all armor stands:
+        kill loop-entity
+
+function delete_codexlb(id: text):
+    clear_codexlb({_id})
+    delete {codexlb::boards::%{_id}%::*}
+    delete {codexlb::boards::%{_id}%}
+
+function cache_codexlb_name(p: player):
+    set {codexlb::names::%name of {_p}%} to name of {_p}
+    set {codexlb::names::%uuid of {_p}%} to name of {_p}
+
+function codexlb_name(key: text) :: text:
+    if {codexlb::names::%{_key}%} is set:
+        return {codexlb::names::%{_key}%}
+    return {_key}
+
+function codexlb_title(stat: text) :: text:
+    if {_stat} is "prestige":
+        return "Top Prestiges"
+    if {_stat} is "level":
+        return "Top Level"
+    if {_stat} is "blocks":
+        return "Blocks mined"
+    if {_stat} is "kills":
+        return "Top Kills"
+    return "Leaderboard"
+
+function codexlb_color(stat: text) :: text:
+    if {_stat} is "prestige":
+        return "&d"
+    if {_stat} is "level":
+        return "&9"
+    if {_stat} is "kills":
+        return "&4"
+    return "&e"
+
+function codexlb_anim() :: text:
+    set {_left} to {codexlb::refresh-left}
+    if {_left} is not set:
+        set {_left} to 60
+    if {_left} > 57:
+        return "&7Refreshing in &8[&8||||||||||||||||||||&8]"
+    if {_left} > 54:
+        return "&7Refreshing in &8[&a|&8|||||||||||||||||||&8]"
+    if {_left} > 51:
+        return "&7Refreshing in &8[&a||&8||||||||||||||||||&8]"
+    if {_left} > 48:
+        return "&7Refreshing in &8[&a|||&8|||||||||||||||||&8]"
+    if {_left} > 45:
+        return "&7Refreshing in &8[&a||||&8||||||||||||||||&8]"
+    if {_left} > 42:
+        return "&7Refreshing in &8[&a|||||&8|||||||||||||||&8]"
+    if {_left} > 39:
+        return "&7Refreshing in &8[&a||||||&8||||||||||||||&8]"
+    if {_left} > 36:
+        return "&7Refreshing in &8[&a|||||||&8|||||||||||||&8]"
+    if {_left} > 33:
+        return "&7Refreshing in &8[&a||||||||&8||||||||||||&8]"
+    if {_left} > 30:
+        return "&7Refreshing in &8[&a|||||||||&8|||||||||||&8]"
+    if {_left} > 27:
+        return "&7Refreshing in &8[&a||||||||||&8||||||||||&8]"
+    if {_left} > 24:
+        return "&7Refreshing in &8[&a|||||||||||&8|||||||||&8]"
+    if {_left} > 21:
+        return "&7Refreshing in &8[&a||||||||||||&8||||||||&8]"
+    if {_left} > 18:
+        return "&7Refreshing in &8[&a|||||||||||||&8|||||||&8]"
+    if {_left} > 15:
+        return "&7Refreshing in &8[&a||||||||||||||&8||||||&8]"
+    if {_left} > 12:
+        return "&7Refreshing in &8[&a|||||||||||||||&8|||||&8]"
+    if {_left} > 9:
+        return "&7Refreshing in &8[&a||||||||||||||||&8||||&8]"
+    if {_left} > 6:
+        return "&7Refreshing in &8[&a|||||||||||||||||&8|||&8]"
+    if {_left} > 3:
+        return "&7Refreshing in &8[&a||||||||||||||||||&8||&8]"
+    return "&7Refreshing in &8[&a||||||||||||||||||||&8]"

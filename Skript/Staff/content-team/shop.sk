@@ -1,0 +1,201 @@
+command /openshop <string>:
+    trigger:
+        set {_shop} to arg-1
+        set {_loc} to {shop::%{_shop}%::location}
+        set {_color} to {shop::%{_shop}%::color}
+
+        if playerIsNearShop({_shop}, player) = false:
+            send "&cYou must be near this shop to open it."
+            stop
+        else:
+            openShopGUI({_shop}, {_color}, player)
+
+command /shopkeeperworld <text>:
+    trigger:
+        set {_shop} to "%world of player%_%arg-1%"
+        if playerIsNearShop({_shop}, player) = false:
+            send "&cYou must be near this shop to open it."
+            stop
+        else:        
+            execute console command "/shopkeeper remote %{_shop}% %player%"
+
+command /shop <string> <string> [<string>] [<string>]:
+    permission: sk.content-team.createshop
+    trigger:
+        if plugin "FancyNpcs" or "FancyHolograms" is not enabled:
+            send "%{prefix}% &cFancyNpcs and FancyHolograms are required to run this skript."
+            stop
+        set {_shop} to arg-2
+        set {_color} to arg-3
+        set {_color2} to arg-4
+        switch arg-1:
+            case "create":
+                if {shop::%{_shop}%::name} is not set:
+                    registerHologramNPC({_shop}, {_color}, {_color2}, player)
+                else:
+                    send "%{prefix}% &cThis shop already exists."
+                    stop
+            case "remove":
+                if {shop::%{_shop}%::name} is set:
+                    make player execute command "/npc remove Shop_%{_shop}%"
+                    make player execute command "/holo remove %{_shop}%"
+                    delete {shop::%{_shop}%::*}
+                else:
+                    send "%{prefix}% &cThis shop does not seem to exist."
+                    stop
+
+on tab complete of "/shop":
+    set tab completions for position 1 to "create" and "remove"
+    set tab completions for position 2 to "<shopname>"
+    set tab completions for position 3 to "<hexcolor>"
+    set tab completions for position 4 to "<hexcolor2_optional>"
+
+
+#========================[Create a GUI based on the Shop name]========================#
+local function openShopGUI(shop: string, color: string, p: player):
+    set {_title} to mini message from "<black>Shop ⪼</black> <color:%{_color}%>%{_shop}%"
+    set {_compName} to mini message from "<color:%{_color}%>Compressor"
+    create a new gui with id "shop::%{_p}%" with virtual chest inventory with 3 rows named {_title} and shape "xxxxxxxxx" and "xxTxAxCxx" and "xxxxxxxxx":
+        set {_guiTool} to getToolForGUI({_shop}, {_color})
+        set {_guiArmor} to getArmorForGUI({_shop}, {_color})
+        make gui slot "x" with gray stained glass pane
+        make gui slot "T" with {_guiTool}:
+            openShopCategory({_shop}, {_color}, {_p})
+
+        make gui slot "A" with {_guiArmor}:
+            close {_p}'s inventory
+            wait 1 ticks        
+            make console execute command "/shopkeeper remote %{_shop}%-Armor %{_p}%"
+
+        make gui slot "C" with {var::compressed::%{_shop}%} named "%{_compName}%":
+            close {_p}'s inventory
+            wait 1 ticks            
+            make console execute command "/shopkeeper remote %{_shop}%-Compressor %{_p}%"     
+    open gui with id "shop::%{_p}%" to {_p}
+
+local function openShopCategory(shop: string, color: string, p: player):
+    set {_title} to mini message from "<black>Shop ⪼</black> <color:%{_color}%>%{_shop}% Tools"
+    set {_col} to mini message from "%{_color}%"
+    create a new gui with id "shopCategory::%{_p}%" with virtual chest inventory with 3 rows named {_title} and shape "xxxxxxxxx" and "xxPxxxSxx" and "xxxxxxxxx":
+        set {_pickaxe} to getToolForGUI({_shop}, {_color}, "Pickaxes")
+        set {_sword} to getSwordForGUI({_shop}, {_color})        
+        make gui slot "x" with gray stained glass pane
+
+        if {_shop} = "wood":
+            make gui slot "P" with shiny wooden axe named colored "<#%{_col}%>Wooden Axes":
+                close {_p}'s inventory
+                wait 1 ticks                         
+                make console execute command "/shopkeeper remote %{_shop}%-Axes %{_p}%" 
+        else:
+            make gui slot "P" with {_pickaxe}:
+                close {_p}'s inventory
+                wait 1 ticks
+                make console execute command "/shopkeeper remote %{_shop}%-Pickaxes %{_p}%"
+        make gui slot "S" with {_sword}:
+            close {_p}'s inventory
+            wait 1 ticks             
+            make console execute command "/shopkeeper remote %{_shop}%-Swords %{_p}%"       
+    open gui with id "shopCategory::%{_p}%" to {_p}
+
+#========================[Create a hologram and NPC Automatically]========================#
+local function registerHologramNPC(shop: string, color: string, color2: string = "", p: player):
+    set {_name} to "Shop_%{_shop}%"
+    set {_loc} to location of {_p}
+    set {_y} to y-coord of {_loc}
+
+    #======== NPC Creation ========#
+    make {_p} execute command "/npc create %{_name}%"
+    wait 5 ticks
+    make {_p} execute command "/npc displayname %{_name}% @none"
+    make {_p} execute command "/npc turn_to_player %{_name}% true"
+    make {_p} execute command "/npc turn_to_player_distance %{_name}% 10"
+    make {_p} execute command "/npc center %{_name}%"
+    make {_p} execute command "/npc visibility_distance %{_name}% always_visible"
+    make {_p} execute command "/npc action %{_name}% right_click add player_command openshop %{_shop}%"
+
+    set {shop::%{_shop}%::location} to location of {_p}
+    set {shop::%{_shop}%::color} to {_color}
+    set {shop::%{_shop}%::name} to {_shop}
+
+    # Save gradient only if a second color was provided
+    if {_color2} is set:
+        set {shop::%{_shop}%::gradient} to "<gradient:%{_color}%:%{_color2}%>"
+
+    #======== Hologram Creation ========#
+    make {_p} execute command "/holo create text %{_shop}%"
+    wait 5 ticks
+    make {_p} execute command "/holo edit %{_shop}% setline 1 &%{_color}%&l%{_shop}% Shop"
+    make {_p} execute command "/holo edit %{_shop}% visibilityDistance 30"
+    make {_p} execute command "/holo edit %{_shop}% textshadow true"
+    wait 5 ticks
+    make {_p} execute command "/holo edit %{_shop}% linkWithNpc %{_name}%"
+    make {_p} execute command "/holo edit %{_shop}% moveTo ~ {_y}+2 ~ 90 ~"
+    play sound "minecraft:block.note_block.xylophone" with volume 2 to {_p}
+    send "%{prefix}% &aShop created successfully!" to {_p}
+
+#========================[Check if player is near a shop]========================#
+local function playerIsNearShop(shop: string, p: player):: boolean:
+    set {_loc} to {shop::%{_shop}%::location}
+    if {_loc} is not set:
+        return false
+    if world of {_p} is not world of {_loc}:
+        return false
+    if distance between {_p} and {_loc} > 5: 
+        return false
+    else:   
+        return true 
+
+#========================[Fucking duplicate code, will fix later]========================#
+local function getToolForGUI(input: string, color: string, type: string = ""):: item type:
+    if {_type} = "":
+        set {_type} to "Tools"
+    if {_input} = "wood":
+        return shiny wooden pickaxe named "<color:%{_color}%>Wood %{_type}%" with item flags hide attributes
+    else if {_input} = "stone":
+        return shiny stone pickaxe named "<color:%{_color}%>Stone %{_type}%" with item flags hide attributes
+    else if {_input} = "iron":
+        return shiny iron pickaxe named "<color:%{_color}%>Iron %{_type}%" with item flags hide attributes
+    else if {_input} = "gold":
+        return shiny golden pickaxe named "<color:%{_color}%>Golden %{_type}%" with item flags hide attributes
+    else if {_input} = "diamond":
+        return shiny diamond pickaxe named "<color:%{_color}%>Diamond %{_type}%" with item flags hide attributes
+    else if {_input} = "emerald":
+        return shiny diamond pickaxe named "<color:%{_color}%>Emerald %{_type}%" with item flags hide attributes
+    else:
+        return shiny netherite pickaxe named "<color:%{_color}%>%{_input}% %{_type}%" with item flags hide attributes
+
+local function getSwordForGUI(input: string, color: string):: item type:
+    if {_input} = "wood":
+        return shiny wooden sword named "<color:%{_color}%>Wooden Sword" with item flags hide attributes
+    else if {_input} = "stone":
+        return shiny stone sword named "<color:%{_color}%>Stone Sword" with item flags hide attributes
+    else if {_input} = "iron":
+        return shiny iron sword named "<color:%{_color}%>Iron Sword" with item flags hide attributes
+    else if {_input} = "gold":
+        return shiny golden sword named "<color:%{_color}%>Golden Sword" with item flags hide attributes
+    else if {_input} = "diamond":
+        return shiny diamond sword named "<color:%{_color}%>Diamond Sword" with item flags hide attributes
+    else if {_input} = "emerald":
+        return shiny diamond sword named "<color:%{_color}%>Emerald Sword" with item flags hide attributes
+    else:
+        return shiny netherite sword named "<color:%{_color}%>%{_input}% Sword" with item flags hide attributes
+
+local function getArmorForGUI(input: string, color: string):: item type:
+    if {_input} = "wood":
+        return shiny leather chestplate named "<color:%{_color}%>Wood Armor" with item flags hide attributes
+    else if {_input} = "stone":
+        return shiny leather chestplate named "<color:%{_color}%>Stone Armor" with item flags hide attributes
+    else if {_input} = "iron":
+        return shiny iron chestplate named "<color:%{_color}%>Iron Armor" with item flags hide attributes
+    else if {_input} = "gold":
+        return shiny golden chestplate named "<color:%{_color}%>Golden Armor" with item flags hide attributes
+    else if {_input} = "diamond":
+        return shiny diamond chestplate named "<color:%{_color}%>Diamond Armor" with item flags hide attributes
+    else if {_input} = "emerald":
+        return shiny diamond chestplate named "<color:%{_color}%>Emerald Armor" with item flags hide attributes
+    else:
+        return shiny netherite chestplate named "<color:%{_color}%>%{_input}% Armor" with item flags hide attributes
+
+local function closeCurrentShop(p: player):
+    close inventory of {_p}
+    wait 1 tick

@@ -1,0 +1,36 @@
+
+on right click:
+    if player's tool is tripwire hook named "&6Vault key":
+        set block at location -209, 69, -53 to air
+        set block at location -209, 69, -59 to air
+        wait 2 seconds
+        set block at location -209, 69, -53 to redstone block
+        set block at location -209, 69, -59 to redstone block   
+
+on right click:
+    if player's tool is gold block named "&6VIP Rank":
+        rank("vip", player)
+    if player's tool is diamond block named "&eMVP Rank":
+        rank("MVP", player)
+    if player's tool is diamond block named "&cLord Rank":
+        rank("lord", player)
+    if player's tool is diamond block named "&bHeroic Rank":
+        rank("heroic", player)
+    if player's tool is diamond block named "&d Immortal Rank":
+        rank("Immortal", player)
+
+function rank(rank: string, p: player):
+    set {_p}'s tool to air
+    make console execute command "lp user %{_p}% parent set %{_rank}%"
+    play sound "entity.player.levelup" to {_p}
+    send "helemalmoi" to {_p}
+
+
+
+
+
+
+
+
+
+        

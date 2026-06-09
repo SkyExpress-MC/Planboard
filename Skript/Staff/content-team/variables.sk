@@ -1,0 +1,264 @@
+###############################################
+# Made by ItzRepsac_
+# Requires:
+#   - Skript     (latest)
+#   - Skript-GUI (latest)
+################################################
+# INSTRUCTIONS:
+# When using the /var set command, you dont need to use {} around the variable name.
+# When creating a variable, i made it append var:: to the variable name so you can easily
+# see the differences between for example statistics variables and custom variables that are bound to items.
+#
+# Example: /var set myvar
+# This will create a variable called "{var::myvar}" and bind it to the item you are holding.
+#
+# Example: /var get myvar
+# This will give the item to the player.
+################################################
+options:
+	prefix: &8[&6Var System&8]
+	adminplayer: "ItzRepsac_"
+	max-per-page: 45
+	next-page-button: arrow named "&aNext Page ->"
+	previous-page-button: arrow named "&a<- Previous Page"
+	disabled-page-button: gray stained glass pane named "&7No More Pages"
+
+command /var <text> [<text>]:
+	aliases: /createvar
+	permission: sk.content-team.setvar
+	permission message: &cYou do not have permission to use this command.
+	usage: &cUsage: /var <gui|delall|set|get|delete> <n>
+	trigger:
+		if arg-1 is "gui":
+			openVarGUI(player)
+			stop
+
+		if arg-1 is "delall":
+			if player is {@adminplayer}:
+				delete {var::*}
+				send "{@prefix} &a✔ Deleted all variables" to player
+			else:
+				send "{@prefix} &4⚠ &cOnly &e%{@adminplayer}% &ccan use this command."
+			stop
+
+		if arg-2 is not set:
+			send "{@prefix} &cUsage: /var <gui|delall|set|get|delete> <n>"
+			stop
+
+		if command executor is not a player:
+			send "{@prefix} &cThis command can only be executed by a player in-game."
+			stop
+
+		set {_name} to arg-2
+		switch arg-1:
+			case "set":
+				SetVar(player, {_name})
+
+			case "get":
+				if {var::%{_name}%} is set:
+					give player {var::%{_name}%}
+					send "{@prefix} &a✔ Given &f%{var::%{_name}%}%" to player
+				else:
+					send "{@prefix} &c⚠ Variable not found!" to player
+
+			case "delete":
+				if {var::%{_name}%} is set:
+					delete {var::%{_name}%}
+					send "{@prefix} &a✔ Deleted %{_name}%" to player
+				else:
+					send "{@prefix} &c⚠ Variable not found!" to player
+
+on tab complete of "/var":
+	set tab completions for position 1 to "set", "get", "delete", "gui", "delall"
+
+##############################################################################################################
+# GUI - always shows both pagination buttons in the bottom row.
+# The bottom row (row 6) is reserved for navigation only; content fills rows 1-5 (max 45 slots).
+# If on page 1, the previous button is replaced with the disabled placeholder and vice versa.
+##############################################################################################################
+function openVarGUI(p: player, page: number = 1):
+	set {_allItems::*} to CollectAllVars()
+
+	if size of {_allItems::*} = 0:
+		send "&c⚠ There are no saved item-variables!" to {_p}
+		stop
+
+	set {_maxPerPage} to {@max-per-page}
+	set {_totalItems} to size of {_allItems::*}
+	set {_requiredPages} to ceil({_totalItems} / {_maxPerPage})
+	set {_page} to Clamp({_page}, 1, {_requiredPages})
+
+	# Slice the items for this page
+	set {_startIndex} to (({_page} - 1) * {_maxPerPage}) + 1
+	set {_endIndex} to min({_startIndex} + {_maxPerPage} - 1, {_totalItems})
+
+	set {_currentIndex} to {_startIndex}
+	while {_currentIndex} <= {_endIndex}:
+		add {_allItems::%{_currentIndex}%} to {_pageItems::*}
+		add 1 to {_currentIndex}
+
+	# Always use 5 rows: 4 content rows + 1 navigation row
+	set {_rowShapes::*} to "abcdefghi", "jklmnopqr", "stuvwxyz1", "ABCDEFGHI", "JKLMNOPQR"
+	set {_slotID::*} to "a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","1","A","B","C","D","E","F","G","H","I"
+
+	create a gui with id "itemvariables::%{_p}%::page%{_page}%" with virtual chest inventory with 5 rows named "&0Item Variables &8(Page %{_page}%/%{_requiredPages}%)" and shape {_rowShapes::*}:
+
+		# Fill all content slots with placeholder
+		loop {_slotID::*}:
+			make gui slot loop-value with gray stained glass pane named " "
+
+		# Fill navigation row with placeholders
+		loop "J","K","L","M","N","O","P","Q","R":
+			make gui slot loop-value with gray stained glass pane named " "
+
+		# Place content items
+		set {_currentSlotIndex} to 1
+		loop {_pageItems::*}:
+			set {_item} to loop-value
+			if {_currentSlotIndex} > size of {_slotID::*}:
+				stop
+			set {_slotChar} to {_slotID::%{_currentSlotIndex}%}
+
+			if {_item} is set:
+				set {_displayName} to GetItemDisplayName({_item})
+				set {_varName} to GetVarName({_item})
+				set {_varDate} to GetVarDate({_item})
+				set {_varCreator} to GetVarCreator({_item})
+
+				set {_existingLore::*} to lore of {_item}
+				set {_lore::*} to {_existingLore::*}, " ", "&8=====[&6Variable Info&8]=====", "&8&oName: &e{var::%{_varName}%}", "&8&oCreated at: &e%{_varDate}%", "&8&oMade by: &e%{_varCreator}%", " ", "&6-> &eClick to get the item"
+
+				make gui slot {_slotChar} with {_item} named "%{_displayName}%" with lore {_lore::*}:
+					give {_p} {_item}
+					send "&2✔ &aSuccessfully obtained %{_displayName}%" to {_p}
+
+			add 1 to {_currentSlotIndex}
+
+		# Previous page button - first slot of nav row
+		if {_page} > 1:
+			make gui slot "J" with {@previous-page-button}:
+				openVarGUI({_p}, {_page} - 1)
+		else:
+			make gui slot "J" with {@disabled-page-button}
+
+		# Next page button - last slot of nav row
+		if {_page} < {_requiredPages}:
+			make gui slot "R" with {@next-page-button}:
+				openVarGUI({_p}, {_page} + 1)
+		else:
+			make gui slot "R" with {@disabled-page-button}
+
+	open gui with id "itemvariables::%{_p}%::page%{_page}%" for {_p}
+
+##############################################################################################################
+# FUNCTIONS
+##############################################################################################################
+# Clamps a number between a min and max value.
+local function Clamp(value: number, min: number, max: number) :: number:
+	if {_value} < {_min}:
+		return {_min}
+	if {_value} > {_max}:
+		return {_max}
+	return {_value}
+
+# Checks if an item is already bound to a variable.
+# Returns the variable name (e.g. "myvar" or "group::myvar"), or "" if not found.
+local function FindVarNameByItem(checkItem: item type) :: text:
+	loop indices of {var::*}:
+		set {_key} to loop-value
+		if {var::%{_key}%} is {_checkItem}:
+			return "%{_key}%"
+		loop indices of {var::%{_key}%::*}:
+			set {_sub} to loop-value-2
+			if {var::%{_key}%::%{_sub}%} is {_checkItem}:
+				return "%{_key}%::%{_sub}%"
+	return ""
+
+# Returns the display name of an item, or a fallback if unnamed.
+local function GetItemDisplayName(item: item type) :: text:
+	set {_displayName} to name of {_item}
+	if {_displayName} is not set:
+		set {_displayName} to "&7&oUnnamed Item"
+	return {_displayName}
+
+# Collects all stored item-variables into a flat list.
+# Supports 1D ({var::name}) and 2D ({var::group::name}) variables.
+local function CollectAllVars() :: objects:
+	loop {var::*}:
+		add loop-value to {_result::*}
+	loop indices of {var::*}:
+		set {_key} to loop-value
+		loop {var::%{_key}%::*}:
+			add loop-value-2 to {_result::*}
+	return {_result::*}
+
+# Returns the variable key name for a given item (e.g. "myvar" or "group::myvar").
+local function GetVarName(item: item type) :: text:
+	loop indices of {var::*}:
+		set {_key1} to loop-value
+		if {var::%{_key1}%} is {_item}:
+			return "%{_key1}%"
+		loop indices of {var::%{_key1}%::*}:
+			set {_key2} to loop-value-2
+			if {var::%{_key1}%::%{_key2}%} is {_item}:
+				return "%{_key1}%::%{_key2}%"
+	return "unknown"
+
+
+# Returns the human-readable creation date for a given item.
+local function GetVarDate(item: item type) :: text:
+	loop indices of {var::*}:
+		set {_key1} to loop-value
+		if {var::%{_key1}%} is {_item}:
+			set {_formatted} to {date::%{_key1}%} formatted human-readable
+			return "%{_formatted}%"
+		loop indices of {var::%{_key1}%::*}:
+			set {_key2} to loop-value-2
+			if {var::%{_key1}%::%{_key2}%} is {_item}:
+				set {_formatted} to {date::%{_key1}%::%{_key2}%} formatted human-readable
+				return "%{_formatted}%"
+	return "unknown"
+
+
+# Returns the name of the player who created the variable for a given item.
+local function GetVarCreator(item: item type) :: text:
+	loop indices of {var::*}:
+		set {_key1} to loop-value
+		if {var::%{_key1}%} is {_item}:
+			return "%{varMadeBy::%{_key1}%}%"
+		loop indices of {var::%{_key1}%::*}:
+			set {_key2} to loop-value-2
+			if {var::%{_key1}%::%{_key2}%} is {_item}:
+				return "%{varMadeBy::%{_key1}%::%{_key2}%}%"
+	return "unknown"
+
+
+# Handles the /var set logic.
+local function SetVar(p: player, name: text):
+	set {_existingVar} to FindVarNameByItem({_p}'s tool)
+	if {_existingVar} is not "":
+		send "{@prefix} &4⚠ &cThis item is already saved as &e%{_existingVar}%&c." to {_p}
+		send "{@prefix} &7(Use /var get %{_existingVar}% or delete it first.)" to {_p}
+		stop
+
+	if {var::%{_name}%} is set:
+		send "&4⚠ &cVariable already exists!" to {_p}
+		stop
+
+	if {_name} contains "::":
+		set {_split::*} to split {_name} at "::"
+		if size of {_split::*} = 2:
+			set {var::%{_split::1}%::%{_split::2}%} to {_p}'s tool
+			set {date::%{_split::1}%::%{_split::2}%} to now
+			set {varMadeBy::%{_split::1}%::%{_split::2}%} to {_p}
+	else:
+		set {var::%{_name}%} to {_p}'s tool
+		set {date::%{_name}%} to now
+		set {varMadeBy::%{_name}%} to {_p}
+
+	send "&8=====[&2✔ &a&lNew variable created &2✔&8]=====" to {_p}
+	send "&aVariable: &e%{_name}%" to {_p}
+	send "&aBound to: &e%{_p}'s tool%" to {_p}
+	send "&8Created on: &7%{date::%{_name}%} formatted human-readable%" to {_p}
+
+	

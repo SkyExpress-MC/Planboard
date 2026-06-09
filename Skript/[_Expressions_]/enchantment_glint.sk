@@ -1,0 +1,4 @@
+expression (shiny|glowing|glint[ing]) %item%:
+    return type: item
+    get:
+        return expr-1 with nbt from "{""minecraft:enchantment_glint_override"":true}"

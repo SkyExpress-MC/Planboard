@@ -1,0 +1,110 @@
+# ================================================================
+#   THE GLASS CANNON — Custom Skript
+#   Item:         Bow (Power V, Punch II)
+#   Effect:       Arrows bypass shields & armor enchantments
+#   Drawback:     Health capped at 3 hearts + Glowing while held
+# ================================================================
+
+options:
+    gc-name: &c&lThe Glass Cannon
+    health-cap: 3       # 3 hearts
+    arrow-damage: 8.0  # 9 hearts of true damage
+
+
+# ── Give Command ─────────────────────────────────────────────────
+
+command /glasscannon [<player=%player%>]:
+    permission: op
+    permission message: "&cYou don't have permission to use this command."
+    trigger:
+        set {_bow} to a bow named "{@gc-name}" with item flags hide enchants and hide attributes
+        enchant {_bow} with power 5
+        enchant {_bow} with punch 2
+        set lore of {_bow} to "&8&m                    &r&8[&4♦&8]&8&m                       ", "&7Arrows pierce through &cshields", "&7and ignore &carmor enchantments&7.", "", "&c⚠ &7Hearts capped at &c3 &7while held.", "&c⚠ &7You emit a &fGlowing &7aura while held.", "&8&m                                               "
+        give arg-1 {_bow}
+        send "&8[&c&l✦&8] &c&lThe Glass Cannon &7has been placed in your hands." to arg-1
+
+
+# ── Holding Detection — runs every 2 ticks ───────────────────────
+
+every 2 ticks:
+    loop all players:
+        set {_main} to tool of loop-player
+        set {_off} to offhand tool of loop-player
+
+        # Check if either hand holds the Glass Cannon
+        set {_has-gc} to false
+        if name of {_main} is "{@gc-name}":
+            set {_has-gc} to true
+        else if name of {_off} is "{@gc-name}":
+            set {_has-gc} to true
+
+        if {_has-gc} is true:
+            # First equip — notify the player
+            if {gc.held::%loop-player's uuid%} is not set:
+                set {gc.held::%loop-player's uuid%} to true
+                send action bar "&c&l[ ⚠ GLASS CANNON ACTIVE ] &7— &cHealth capped at 3 hearts!" to loop-player
+                play sound "block.anvil.land" to loop-player
+
+            # Enforce the health cap
+            set max health of loop-player to {@health-cap}
+            if health of loop-player > {@health-cap}:
+                set health of loop-player to {@health-cap}
+
+            # Keep Glowing active (refreshed every 2 ticks)
+            apply glowing to loop-player for 3 seconds
+
+        else:
+            # Bow was unequipped — restore health
+            if {gc.held::%loop-player's uuid%} is set:
+                delete {gc.held::%loop-player's uuid%}
+                set max health of loop-player to 10
+                send action bar "&a&l[ ✔ GLASS CANNON UNEQUIPPED ] &7— Health restored." to loop-player
+                play sound "block.note_block.pling" to loop-player
+
+
+# ── Arrow Tagging ────────────────────────────────────────────────
+
+on shoot:
+    shooter is a player
+    projectile is an arrow
+    set {_main} to tool of shooter
+    set {_off} to offhand tool of shooter
+
+    if name of {_main} is "{@gc-name}":
+        set {gc.arrow::%projectile's uuid%} to true
+    else if name of {_off} is "{@gc-name}":
+        set {gc.arrow::%projectile's uuid%} to true
+
+
+# ── Damage Override ───────────────────────────────────────────────
+
+on damage:
+    damage cause is projectile
+    {gc.arrow::%projectile's uuid%} is set
+
+    cancel event
+
+    set {_target} to victim
+    set {_new-hp} to health of {_target} - {@arrow-damage}
+
+    delete {gc.arrow::%projectile's uuid%}
+    delete projectile
+
+    if {_new-hp} <= 0:
+        kill {_target}
+    else:
+        set health of {_target} to {_new-hp}
+        if {_target} is a player:
+            send action bar "&c&l☠ You were hit by the Glass Cannon!" to {_target}
+            play sound "entity.player.hurt" to {_target}
+        else:
+            play sound "entity.generic.hurt" at {_target}
+
+
+# ── Cleanup on Quit ──────────────────────────────────────────────
+
+on quit:
+    if {gc.held::%player's uuid%} is set:
+        delete {gc.held::%player's uuid%}
+        set max health of player to 10

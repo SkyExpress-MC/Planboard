@@ -1,0 +1,5 @@
+function DisplayTool(p: player) :: string:
+    if {_p}'s tool's name is set:
+        return "&7using &b%name of {_p}'s tool%"
+    else:
+        return ""

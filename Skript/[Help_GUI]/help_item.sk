@@ -1,0 +1,96 @@
+function helpgui_item(p: player):
+    set {_title} to mini message from "<b><dark_gray>Item</dark_gray></b> <gray>⪼ <yellow>Help Page"
+    create a gui with id "help_item::%{_p}%" with virtual chest inventory named {_title} with shape "xxxxxxxxx", "x1234567x" and "xxxxxxxxx":
+        make gui slot "x" with gray stained glass pane named " " with item flags hide additional tooltip
+
+        # ① Overview
+        set {_lore::1} to "&7&oAll &e/item&7&o subcommands"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/item rename &8- &7name items"
+        set {_lore::4} to "&e/item enchant &8- &7apply enchants"
+        set {_lore::5} to "&e/item hide &8- &7hide visual flags"
+        set {_lore::6} to ""
+        set {_lore::7} to "&8All actions affect your held item."
+        make gui slot "1" with written book named "&6① &6&lOverview" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ② Rename drops
+        set {_lore::1} to "&7&oName ore drops by shop"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/item rename drop_regular <ore>"
+        set {_lore::4} to "&e/item rename drop_compressed <ore>"
+        set {_lore::5} to ""
+        set {_lore::6} to "&7Uses the shop's color/gradient."
+        set {_lore::7} to "&7Compressed variant uses small font."
+        set {_lore::8} to ""
+        set {_lore::9} to "&aExample:"
+        set {_lore::10} to "  &e/item rename drop_regular iron"
+        make gui slot "2" with written book named "&6② &6&lRename Drops" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ③ Rename gear
+        set {_lore::1} to "&7&oName held tools/armor"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/item rename gear <ore> [number]"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Format: &f<gradient>Ore Tool #N"
+        set {_lore::6} to ""
+        set {_lore::7} to "&aExample:"
+        set {_lore::8} to "  &e/item rename gear diamond 1"
+        make gui slot "3" with written book named "&6③ &6&lRename Gear" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ④ Enchant normal
+        set {_lore::1} to "&7&oApply standard enchants"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/item enchant normal <lvl1> [lvl2]"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Auto-detects tool type:"
+        set {_lore::6} to "  &8• &ePickaxe &8- &7{@pickaxe_1st_Ench} + {@pickaxe_2nd_Ench}"
+        set {_lore::7} to "  &8• &eSword &8- &7{@sword_1st_Ench} + {@sword_2nd_Ench}"
+        set {_lore::8} to "  &8• &eArmor &8- &7{@armor_1st_Ench} + {@armor_2nd_Ench}"
+        set {_lore::9} to "  &8• &eAxe &8- &7{@axe_1st_Ench}"
+        set {_lore::10} to ""
+        set {_lore::11} to "&8Also makes the item unbreakable."
+        make gui slot "4" with written book named "&6④ &6&lEnchant Normal" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑤ Enchant special
+        set {_lore::1} to "&7&oApply AdvancedEnchantments specials"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/item enchant special"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Adds the configured special:"
+        set {_lore::6} to "  &8• &ePickaxe &8- &7{@pickaxe_special_Ench}"
+        set {_lore::7} to "  &8• &eSword &8- &7{@sword_special_Ench}"
+        set {_lore::8} to "  &8• &eArmor &8- &7{@armor_special_Ench}"
+        set {_lore::9} to ""
+        set {_lore::10} to "&c● &7Requires &fAdvancedEnchantments&7."
+        make gui slot "5" with written book named "&6⑤ &6&lEnchant Special" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑥ Hide
+        set {_lore::1} to "&7&oHide visual flags"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/item hide armor_trim"
+        set {_lore::4} to "&e/item hide dye"
+        set {_lore::5} to ""
+        set {_lore::6} to "&8Other flags hide automatically"
+        set {_lore::7} to "&8during rename/enchant actions."
+        make gui slot "6" with written book named "&6⑥ &6&lHide Flags" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑦ Workflow
+        set {_lore::1} to "&7&oFull setup example"
+        set {_lore::2} to ""
+        set {_lore::3} to "&71. Hold a diamond pickaxe"
+        set {_lore::4} to "&72. &e/item enchant normal 5 3"
+        set {_lore::5} to "&73. &e/item enchant special"
+        set {_lore::6} to "&74. &e/item rename gear diamond 1"
+        set {_lore::7} to ""
+        set {_lore::8} to "&aResult: named, enchanted,"
+        set {_lore::9} to "&aunbreakable, flag-clean pickaxe."
+        make gui slot "7" with written book named "&6⑦ &6&lWorkflow" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+    open gui with id "help_item::%{_p}%" for {_p}

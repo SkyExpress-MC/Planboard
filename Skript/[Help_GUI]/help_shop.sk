@@ -1,0 +1,128 @@
+function helpgui_shop(p: player):
+    set {_title} to mini message from "<b><dark_gray>Shop</dark_gray></b> <gray>⪼ <yellow>Help Page"
+    create a gui with id "help_shop::%{_p}%" with virtual chest inventory named {_title} with shape "xxxxxxxxx", "x1234567x" and "xxxxxxxxx":
+        make gui slot "x" with gray stained glass pane named " " with item flags hide additional tooltip
+
+        # ① Overview
+        set {_lore::1} to "&7&oWhat this system does"
+        set {_lore::2} to ""
+        set {_lore::3} to "&7Spawns a FancyNpc + FancyHologram"
+        set {_lore::4} to "&7for each shop and stores its"
+        set {_lore::5} to "&7color, location, and gradient."
+        set {_lore::6} to ""
+        set {_lore::7} to "&7Right-clicking the NPC opens a"
+        set {_lore::8} to "&7chest GUI with three categories:"
+        set {_lore::9} to "&fTools&7, &fArmor&7, and &fCompressor&7."
+        set {_lore::10} to ""
+        set {_lore::11} to "&c● &7Requires &fFancyNpcs&7 + &fFancyHolograms&7."
+        make gui slot "1" with written book named "&6① &6&lOverview" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ② Setup Requirements
+        set {_lore::1} to "&7&oDo these &lbefore&r&7&o running create"
+        set {_lore::2} to ""
+        set {_lore::3} to "&c● &7Stand &fexactly&7 where the NPC"
+        set {_lore::4} to "&7  should spawn"
+        set {_lore::5} to "&c● &7Do &fNOT&7 be flying — Y is read"
+        set {_lore::6} to "&7  from your position"
+        set {_lore::7} to "&c● &7Hologram floats &f2 blocks&7 above"
+        set {_lore::8} to ""
+        set {_lore::9} to "&8Players must stand within &f5 blocks"
+        set {_lore::10} to "&8of the saved location to use it."
+        make gui slot "2" with written book named "&6② &6&lSetup Requirements" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+# ③ Create
+        set {_lore::1} to "&7&oCreate a new shop"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/shop create <name> <color1> <color2>"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Arguments:"
+        set {_lore::6} to "  &e<name>   &8- &7Shop name &8(e.g. iron)"
+        set {_lore::7} to "  &e<color1> &8- &7Solid hex &8(NPC + GUI)"
+        set {_lore::8} to "  &e<color2> &8- &7Gradient hex &8(compressed)"
+        set {_lore::9} to ""
+        set {_lore::10} to "&4⚠ &cHex codes must be &l6 chars&r&c, no &l#"
+        set {_lore::11} to "  &aGood: &fFFAA00&7   &cBad: &f#FFAA00&7 / &fFFA"
+        set {_lore::12} to ""
+        set {_lore::13} to "&7How each color is used:"
+        set {_lore::14} to "  &8• &e<color1>&7 → hologram & shop GUI"
+        set {_lore::15} to "  &8• &e<color2>&7 → gradient for compressed"
+        set {_lore::16} to "&7              item names &8(small font)"
+        set {_lore::17} to ""
+        set {_lore::18} to "&4⚠ &cBoth colors are &lrequired&r&c — the"
+        set {_lore::19} to "&cgradient powers &f/item rename drop_compressed&7."
+        set {_lore::20} to ""
+        set {_lore::21} to "&7See &e/help content-team item&7 for how"
+        set {_lore::22} to "&7these colors get applied to items."
+        set {_lore::23} to ""
+        set {_lore::24} to "&aExample &8(silver shop)&a:"
+        set {_lore::25} to "  &e/shop create iron D8D8D8 FFFFFF"
+        make gui slot "3" with written book named "&6③ &6&lCreate" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ④ Remove
+        set {_lore::1} to "&7&oDelete a shop"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/shop remove <name>"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Removes:"
+        set {_lore::6} to "  &8• &7The NPC &f(Shop_<name>)"
+        set {_lore::7} to "  &8• &7The hologram &f(<name>)"
+        set {_lore::8} to "  &8• &7All saved data in &f{shop::*}"
+        set {_lore::9} to ""
+        set {_lore::10} to "&4⚠ &cAction is &linstant&r&c — no undo."
+        make gui slot "4" with written book named "&6④ &6&lRemove" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑤ Open Shop
+        set {_lore::1} to "&7&oManually open a shop GUI"
+        set {_lore::2} to ""
+        set {_lore::3} to "&e/openshop <name>"
+        set {_lore::4} to ""
+        set {_lore::5} to "&7Normally bound to the NPC's"
+        set {_lore::6} to "&7right-click — call manually for"
+        set {_lore::7} to "&7testing or debug."
+        set {_lore::8} to ""
+        set {_lore::9} to "&c● &7Player must be within &f5 blocks"
+        set {_lore::10} to "&c● &7Hidden from non-op tab lists"
+        make gui slot "5" with written book named "&6⑤ &6&lOpen Shop" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑥ GUI Categories
+        set {_lore::1} to "&7&oWhat the shop GUI contains"
+        set {_lore::2} to ""
+        set {_lore::3} to "&7Main GUI buttons:"
+        set {_lore::4} to "  &e&lT &8- &7Tools &8(opens submenu)"
+        set {_lore::5} to "  &e&lA &8- &7Armor &8(direct shopkeeper)"
+        set {_lore::6} to "  &e&lC &8- &7Compressor &8(direct)"
+        set {_lore::7} to ""
+        set {_lore::8} to "&7Tools submenu:"
+        set {_lore::9} to "  &e&lP &8- &7Pickaxes / Axes"
+        set {_lore::10} to "  &e&lS &8- &7Swords"
+        set {_lore::11} to ""
+        set {_lore::12} to "&8Each opens a Shopkeepers remote"
+        set {_lore::13} to "&8named &f<shop>-<Category>&8."
+        make gui slot "6" with written book named "&6⑥ &6&lGUI Categories" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+        # ⑦ Dependencies & Naming
+        set {_lore::1} to "&7&oRequired plugins & shopkeeper names"
+        set {_lore::2} to ""
+        set {_lore::3} to "&c● &fFancyNpcs &8- &7spawns the NPC"
+        set {_lore::4} to "&c● &fFancyHolograms &8- &7floating text"
+        set {_lore::5} to "&c● &fShopkeepers &8- &7backing trades"
+        set {_lore::6} to ""
+        set {_lore::7} to "&7Shopkeepers must be named:"
+        set {_lore::8} to "  &f<shop>-Pickaxes"
+        set {_lore::9} to "  &f<shop>-Swords"
+        set {_lore::10} to "  &f<shop>-Axes &8(wood only)"
+        set {_lore::11} to "  &f<shop>-Armor"
+        set {_lore::12} to "  &f<shop>-Compressor"
+        set {_lore::13} to ""
+        set {_lore::14} to "&8Icon material is auto-picked from"
+        set {_lore::15} to "&8shop name &8(wood, iron, diamond...)&8."
+        make gui slot "7" with written book named "&6⑦ &6&lDependencies" with lore {_lore::*} with item flags hide additional tooltip
+        clear {_lore::*}
+
+    open gui with id "help_shop::%{_p}%" for {_p}

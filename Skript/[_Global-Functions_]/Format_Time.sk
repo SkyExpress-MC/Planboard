@@ -1,0 +1,22 @@
+###############################################
+# Made by ItzRepsac_
+# Requires: Skript
+# Tested on: 1.21.1
+# License: MIT License
+################################################
+function FormatTime(input: timespan) :: string:
+	set {_d} to floor(mod({_input}'s days, 30))
+	set {_h} to floor(mod({_input}'s hours, 24))
+	set {_m} to floor(mod({_input}'s minutes, 60))
+	set {_s} to floor(mod({_input}'s seconds, 60))
+
+	if {_h} is greater than 0:
+		return ("%{_h}%h %{_m}%m %{_s}%s")
+
+	else if {_m} is greater than 0:
+		if {_s} is greater than 0:
+			return ("%{_m}%m %{_s}%s")
+		else:
+			return ("%{_m}%m")
+	else:
+		return ("%{_s}%s")

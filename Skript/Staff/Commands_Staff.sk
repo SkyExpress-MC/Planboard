@@ -1,0 +1,122 @@
+command /applychanges <text>:
+	executable by: console
+	trigger:
+		play sound "ENTITY_EXPERIENCE_ORB_PICKUP" at pitch 0 to all players
+		send title "&cUpdate Incoming" to all players
+		send "&8&m                                      " to all players
+		send "%{prefix}% &7An update is coming out soon!" to all players
+		send "%{prefix}% &7The server will restart in &e1 minute&7!" to all players
+		send "&8&m                                      " to all players
+		set {restart::countdown} to 60
+
+every second:
+	if {restart::countdown} is set:
+		remove 1 from {restart::countdown}
+		if {restart::countdown} <= 5:
+			send action bar "&7Restarting in &e%{restart::countdown}% &7seconds" to all players
+			play sound "block_note_block_ping" with pitch 1 to all players
+		if {restart::countdown} <= 0:
+			broadcast "&8&m                          "
+			broadcast "%{prefix}% &7Restarting now..."
+			broadcast "&8&m                          "
+			delete {restart::countdown}
+			restart server
+
+####################################################
+#####             CHAT MODERATION              #####
+####################################################
+command /announce [<text>]:
+    permission: sk.staff.announce
+    permission message: "&cNo Permission"
+    trigger:
+        if arg-1 is set:
+            play sound "ENTITY_EXPERIENCE_ORB_PICKUP" at pitch 0 to player
+            send title "&c&lAnnouncement" to all players for 5 seconds
+            send subtitle colored arg-1 to all players for 5 seconds
+        else:
+            send "&cNo text provided"
+
+####################################################
+#####            MUTECHAT COMMAND              #####
+####################################################			
+command /mutechat:
+	aliases: /mutechat
+	permission: sk.staff.mutechat
+	trigger:
+		if {-mutechat} is not set:
+			set {-mutechat} to true
+			broadcast "%nl% &e⚠ Chat has been muted by %player% %nl%"
+		else:
+			delete {-mutechat}
+			broadcast "%nl% &e⚠ Chat has been unmuted by %player% %nl%"
+
+####################################################
+#####            CLEARCHAT COMMAND             #####
+####################################################
+command /clearchat:
+    aliases: cc
+    description: Clear chat for all players
+    permission: sk.staff.chatclear
+    trigger:
+        set {_clearer} to "%player%" if executor is player, else "Console"
+        loop all players:
+            loop 150 times:
+                send " " to loop-player-1
+        if executor is player:
+            broadcast "%nl%&e⚠ &fChat has been cleared by &a%player%%nl%"
+        else:
+            broadcast "%nl%&e⚠ &fChat has been cleared by &aConsole!%nl%"
+
+####################################################
+#####             CLEARLAG COMMAND             #####
+####################################################
+command /clearlag:
+	permission: sk.staff.clearlag
+	trigger:
+		broadcast "%{prefix}% &cClearing lag in 10 seconds!"
+		wait 10 seconds
+		broadcast "%{prefix}% &cKilled &4%size of dropped items%&c dropped items."
+		kill dropped items
+
+####################################################
+#####               COMMAND SPY                #####
+####################################################
+on command:
+    sender is not console
+    loop all players:
+        if {cspy::%loop-player's uuid%} is true:
+            if loop-player has permission "command.spy":
+                if event-commandsender is a player:
+                    if event-commandsender is not loop-player:
+                        if event-commandsender has permission "op":
+                            if command is not "openshop":
+                                send "&8[&cCSPY&8] &c%event-commandsender%&8: &c/%whole command%" to loop-player
+                else:
+                    send "&8[&cCSPY&8] &cCONSOLE&8: &c/%whole command%" to loop-player
+
+command /cspy [<text>] [<offlineplayer>]:
+	permission: sk.staff.cspy
+	trigger:
+		if arg-1 is "on":
+			set {cspy::%player's uuid%} to true
+			send "&8[&cCSPY&8] &7Command spy is now &aENABLED" to player
+			stop
+		if arg-1 is "off":
+			delete {cspy::%player's uuid%}
+			send "&8[&cCSPY&8] &7Command spy is now &cDISABLED" to player
+			stop
+		else:
+			if {cspy::%player's uuid%} is not set:
+				set {cspy::%player's uuid%} to true
+				send "&8[&cCSPY&8] &7Command spy is now &aENABLED" to player
+				stop
+			else:
+				delete {cspy::%player's uuid%}
+				send "&8[&cCSPY&8] &7Command spy is now &cDISABLED" to player
+				stop
+
+on tab complete for "/cspy":
+	set tab completions for position 1 to "on" and "off"
+
+
+

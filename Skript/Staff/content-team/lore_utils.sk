@@ -1,0 +1,380 @@
+options:
+    pickaxe_1st_Ench: "efficiency"
+    pickaxe_2nd_Ench: "fortune"
+    pickaxe_special_Ench: "haste"
+    sword_1st_Ench: "sharpness"
+    sword_2nd_Ench: "looting"
+    sword_special_Ench: "critical"
+    armor_1st_Ench: "protection"
+    armor_2nd_Ench: "thorns"
+    armor_special_Ench: "overload"
+    itemColor: "#444E42"
+    axe_1st_Ench: "efficiency"
+
+
+# ==========================================================
+# Pet creation command
+# ==========================================================
+command /pet <string> <string> [<string>] [<number>]:
+    permission: sk.content-team.createpet
+    trigger:
+        if arg-1 is "ability":
+            if arg-2 is "set":
+                if arg-3 is not set:
+                    send "%{prefix}% &cUsage: &7/pet ability set <ability>"
+                    stop
+                if player's tool is air:
+                    send "%{prefix}% &cHold an item first!"
+                    stop
+                set {_a} to arg-3 in lower case
+                if {-ability::%{_a}%::type} is not set:
+                    send "%{prefix}% &cUnknown ability: &e%{_a}%"
+                    stop
+
+                set {_tool} to player's tool
+                set string data tag "ability" of {_tool} to {_a}
+                set player's tool to {_tool}
+
+                # Verify it actually wrote
+                if string data tag "ability" of player's tool is {_a}:
+                    send "%{prefix}% &aBound &e%{_a}% &ato held item!"
+                else:
+                    send "%{prefix}% &cBind failed — PDC write didn't persist!"
+                stop
+            if arg-2 is "remove":
+                delete persistent data value "ability" of player's tool
+                send "%{prefix}% &aRemoved ability from held item."
+                stop
+            if arg-2 is "list":
+                send "%{prefix}% &eAbilities: &f%indices of {-ability::*}%"
+                stop
+
+        # Keep your existing rename/add_attribute below
+        if arg-1 is "rename":
+            make player execute command "/ie rename arg-1"
+        if arg-1 is "add_attribute":
+            if arg-4 is set:
+                make player execute command "/ie attribute add %arg-2% %arg-4% %arg-3%"
+            else:
+                send "%{prefix}% You need to specify a fourth argument!"
+
+on tab complete of "/pet":
+    set tab completions for position 1 to "ability", "rename" and "add_attribute"
+    if tab arg-1 is "ability":
+        set tab completions for position 2 to "set", "remove" and "list"
+        if tab arg-2 is "set":
+            clear {_c::*}
+            loop indexes of {-ability::*}:
+                add loop-value to {_c::*}
+            set tab completions for position 3 to {_c::*}
+    if tab arg-1 is "rename":
+        set tab completions for position 2 to "<colored_petname>"
+    if tab arg-1 is "add_attribute":
+        set tab completions for position 2 to "max_health", "armor", "armor_toughness", "attack_damage", "attack_speed" and "movement_speed"
+        set tab completions for position 3 to "off_hand", "head" and "main_hand"
+        set tab completions for position 4 to "<number>"
+
+# ==========================================================
+# Item creation command
+# ==========================================================
+#              /item   <action> <subaction> [args...] #
+command /item <string> <string> [<string>] [<string>]:
+    permission: sk.content-team.createitem
+    trigger:
+        # === RENAME actions ===
+        if arg-1 is "rename":
+            if arg-2 is "elytra":
+                elytraRename(arg-3, arg-4, player)
+                stop
+            handleRename(arg-2, arg-3, arg-4, player)
+            stop
+        # === ENCHANT actions ===
+        if arg-1 is "enchant":
+            if getToolType(player) is "none":
+                sendAirError(player)
+                stop
+            handleEnchant(arg-2, arg-3, arg-4, player)
+            stop
+
+        # === HIDE actions ===
+        if arg-1 is "hide":
+            if getToolType(player) is "none":
+                sendAirError(player)
+                stop
+            handleHide(arg-2, player)
+            stop
+
+        send "%{prefix}% &4⚠ &cUnknown action: &e%arg-1%"
+        send "%{prefix}% &7Available: &frename&7, &fenchant&7, &fhide"
+
+
+# ==========================================================
+# Top-level action handlers
+# ==========================================================
+
+local function handleRename(subaction: string, ore: string, number: string, p: player):
+    if {_ore} is not set:
+        send "%{prefix}% &4⚠ &cYou need to specify an ore/shop name!" to {_p}
+        stop
+
+    if {_subaction} is "drop_regular":
+        rename("regular", {_ore}, {_p})
+    else if {_subaction} is "drop_compressed":
+        rename("compressed", {_ore}, {_p})
+    else if {_subaction} is "drop_mega-comp":
+        rename("mega-compressed", {_ore}, {_p})        
+    else if {_subaction} is "gear":
+        if getToolType({_p}) is "none":
+            sendAirError({_p})
+            stop
+        rename("gear", {_ore}, {_p}, {_number})
+
+local function elytraRename(world: string, number: string, p: player):
+    if {_world} = "overworld":
+        set {_name} to "<gradient:#AFEAFF:#43B0FF>Sky Wings</gradient>"
+    if {_world} = "nether":
+        set {_name} to "<b><gradient:#571616:#6D0909>Demon Wings</gradient></b>"
+    if {_world} = "end":
+        set {_name} to "<color:#E445B7><obf>;</obf></color><b><gradient:#2A1657:#6C1C85>Dragon Wings</gradient></b><color:#E445B7><obf>;</obf></color>"
+    if {_world} = "aether":
+        set {_name} to "<b><gradient:#FFD94B:#FFF2B3>Angel Wings</gradient></b>"
+    if {_name} is set:
+        make {_p} execute command "/ie rename %{_name}% <color:#4FBAE5>%{_number}%" 
+
+
+local function handleEnchant(subaction: string, lvl1Str: string, lvl2Str: string, p: player):
+    set {_lvl1} to {_lvl1Str} parsed as integer
+    set {_lvl2} to {_lvl2Str} parsed as integer
+
+    if {_subaction} is "normal":
+        if {_lvl1} is not set:
+            send "%{prefix}% &4⚠ &cYou need to specify an enchantment level!" to {_p}
+            stop
+        applyNormalEnchant({_p}, {_lvl1}, {_lvl2})
+
+    else if {_subaction} is "special":
+        applySpecialEnchant({_p})
+
+    else:
+        send "%{prefix}% &4⚠ &cUnknown enchant type: &e%{_subaction}%" to {_p}
+        send "%{prefix}% &7Available: &fnormal&7, &fspecial" to {_p}
+
+
+local function handleHide(what: string, p: player):
+    set {_temp} to {_p}'s tool
+    if {_what} is "armor_trim":
+        set {_temp} to {_temp} with item flags hide armor trim
+        set {_p}'s tool to air
+        give {_p} 1 of {_temp}        
+    else if {_what} is "dye":
+        set {_temp} to {_temp} with item flags hide dye
+        set {_p}'s tool to air
+        give {_p} 1 of {_temp}        
+    else:
+        send "%{prefix}% &4⚠ &cUnknown hide target: &e%{_what}%" to {_p}
+        send "%{prefix}% &7Available: &farmor_trim&7, &fdye" to {_p}
+
+
+# ==========================================================
+# Enchant logic
+# ==========================================================
+
+local function applyNormalEnchant(p: player, lvl1: integer, lvl2: integer):
+    CleanupTool({_p})
+    set {_tool} to getToolType({_p})
+
+    if {_tool} is "Pickaxe":
+        enchantAndLore({_p}, "Pickaxe", {@pickaxe_1st_Ench}, {_lvl1}, {@pickaxe_2nd_Ench}, {_lvl2})
+    else if {_tool} is "Armor":
+        enchantAndLore({_p}, "Armor", {@armor_1st_Ench}, {_lvl1}, {@armor_2nd_Ench}, {_lvl2})
+    else if {_tool} is "Sword":
+        enchantAndLore({_p}, "Sword", {@sword_1st_Ench}, {_lvl1}, {@sword_2nd_Ench}, {_lvl2})
+    else if {_tool} is "Axe":
+        enchantAndLore({_p}, "Axe", {@axe_1st_Ench}, {_lvl1}, "none", 0)
+    make {_p} execute command "/ie unbreakable true"
+
+
+
+local function applySpecialEnchant(p: player):
+    if plugin "AdvancedEnchantments" is not enabled:
+        play sound "block.anvil.land" to {_p}
+        send "%{prefix}% &4⚠ AdvancedEnchantments &cplugin is not enabled!" to {_p}
+        stop
+
+    set {_tool} to getToolType({_p})
+    if {_tool} is "Pickaxe":
+        make {_p} execute command "ae enchant %{@pickaxe_special_Ench}%"
+    else if {_tool} is "Sword":
+        make {_p} execute command "ae enchant %{@sword_special_Ench}%"
+    else if {_tool} is "Armor":
+        make {_p} execute command "ae enchant %{@armor_special_Ench}%"
+
+
+local function enchantAndLore(p: player, type: string, ench1: string, lvl1: integer, ench2: string, lvl2: integer):
+    Enchant({_p}, {_ench1}, {_lvl1})
+    if {_ench2} is not "none":
+        if {_lvl2} is set:
+            Enchant({_p}, {_ench2}, {_lvl2})
+            SetLore({_p}, {_type}, {_ench1}, {_lvl1}, {_ench2}, {_lvl2})
+            stop
+    # Either no 2nd enchant type or no 2nd level — lore with only 1st enchant
+    SetLore({_p}, {_type}, {_ench1}, {_lvl1}, "none", 0)
+
+# ==========================================================
+# Tab completion
+# ==========================================================
+
+on tab complete of "/item":
+    # Position 1: top-level action
+    set tab completions for position 1 to "rename", "enchant" and "hide"
+
+    # === RENAME subcommands ===
+    if tab arg-1 is "rename":
+        set tab completions for position 2 to "drop_regular", "drop_compressed", "drop_mega-comp", "elytra" and "gear"
+        if tab arg-2 is "drop_regular" or "drop_compressed" or "drop_mega-comp" or "gear":
+            clear {_completions::*}
+            loop indexes of {shop::*}:
+                add loop-value to {_completions::*}
+            set tab completions for position 3 to {_completions::*}
+        if tab arg-2 is "elytra":
+            set tab completions for position 3 to "overworld", "nether", "end" and "aether"
+        if tab arg-2 is "gear":
+            set tab completions for position 4 to "<item number>"
+
+    # === ENCHANT subcommands ===
+    if tab arg-1 is "enchant":
+        set tab completions for position 2 to "normal" and "special"
+        set {_tool} to getToolType(player)
+
+        if tab arg-2 is "normal":
+            if {_tool} is "Pickaxe":
+                set tab completions for position 3 to "<Efficiency LvL>"
+                set tab completions for position 4 to "<Fortune LvL>"
+            if {_tool} is "Sword":
+                set tab completions for position 3 to "<Sharpness LvL>"
+                set tab completions for position 4 to "<Looting LvL>"
+            if {_tool} is "Armor":
+                set tab completions for position 3 to "<Protection LvL>"
+                set tab completions for position 4 to "<Thorns LvL>"
+            if {_tool} is "Axe":
+                set tab completions for position 3 to "<Efficiency LvL>"
+
+        if tab arg-2 is "special":
+            if {_tool} is "Pickaxe":
+                set tab completions for position 3 to "<Haste LvL>"
+            if {_tool} is "Sword":
+                set tab completions for position 3 to "<Critical LvL>"
+            if {_tool} is "Armor":
+                set tab completions for position 3 to "<Overload LvL>"
+
+    # === HIDE subcommands ===
+    if tab arg-1 is "hide":
+        set tab completions for position 2 to "armor_trim" and "dye"
+
+
+# ==========================================================
+# Rename logic
+# ==========================================================
+
+local function rename(type: string, ore: string, p: player, number: string = ""):
+    set {_name} to getDisplayName({_ore})
+    if {_type} is "regular":
+        set {_color} to {shop::%{_ore}%::color}
+        make {_p} execute command "/ie rename &%{_color}%%{_name}%"
+
+    else if {_type} is "compressed":
+        set {_color} to {shop::%{_ore}%::gradient}
+        set {_small} to SmallFont("Compressed %{_ore}%")
+        make {_p} execute command "/ie rename %{_color}%%{_small}%"
+
+    else if {_type} is "mega-compressed":
+        set {_color} to {shop::%{_ore}%::gradient}
+        set {_small} to SmallFont("Mega-Compressed %{_ore}%")
+        make {_p} execute command "/ie rename %{_color}%%{_small}%"
+
+    else if {_type} is "gear":
+        set {_color} to {shop::%{_ore}%::gradient}
+        set {_tool} to getToolType({_p})
+        if {_tool} is "Armor":
+            set {_tool} to getArmorType({_p})
+        make {_p} execute command "/ie rename %{_color}%%{_name}% %{_tool}% <color:#4FBAE5>%{_number}%"
+    HideItemFlags({_p})
+
+# ==========================================================
+# Utility functions
+# ==========================================================
+
+local function Enchant(p: player, ench: string, enchLvL: integer):
+    set {_enchant} to "%{_ench}% %{_enchLvL}%" parsed as enchantment type
+    enchant {_p}'s tool with {_enchant}
+
+
+local function SetLore(p: player, type: string, ench1: string, enchLvL1: integer, ench2: string, enchLvL2: integer):
+    set {_icons::*} to getLoreIcons({_type})
+    set {_icon1} to mini message from {_icons::1}
+    set {_icon2} to mini message from {_icons::2}
+
+    add "&8【&f%SmallFont("Normal Enchants")%&8】" to lore of {_p}'s tool
+    add "  %{_icon1}%&6 &f%SmallFont({_ench1})% %{_enchLvL1}%" to lore of {_p}'s tool
+    if {_ench2} is not "none":
+        add "  %{_icon2}%&6 &f%SmallFont({_ench2})% %{_enchLvL2}%" to lore of {_p}'s tool
+    HideItemFlags({_p})
+
+local function getLoreIcons(type: string) :: strings:
+    if {_type} is "Pickaxe":
+        return "<gold>⛏</gold>" and "<color:#238507>☘"
+    if {_type} is "Armor":
+        return "<color:#078085>🛡" and "<color:#CDC817>⚡"
+    if {_type} is "Sword":
+        return "<color:#720C06>🗡" and "<color:#238507>☘"
+    if {_type} is "Axe":
+        return "<gold>🪓</gold>" and "<color:#238507>☘"
+    return "&7•" and "&7•"
+
+
+local function CleanupTool(p: player):
+    disenchant {_p}'s tool
+    clear lore of {_p}'s tool
+
+
+local function HideItemFlags(p: player):
+    set item flags of {_p}'s tool to hide enchants and hide attributes and hide unbreakable and hide dye and hide armor trim
+
+
+local function sendAirError(p: player):
+    play sound "block.anvil.land" to {_p}
+    send "%{prefix}% &4⚠ &cYou cannot use this on air, dummy!" to {_p}
+    send "%{prefix}% &4⚠ &cPlease hold an item in your hand!" to {_p}
+
+
+local function getToolType(p: player) :: string:
+    set {_t} to {_p}'s tool
+    if {_t} is tagged with minecraft tag "pickaxes":
+        return "Pickaxe"
+    if {_t} is tagged with minecraft tag "swords":
+        return "Sword"
+    if {_t} is tagged with minecraft tag "axes":
+        return "Axe"
+    if {_t} is tagged as minecraft item tag "trimmable_armor":
+        return "Armor"
+    return "none"
+
+
+local function getArmorType(p: player) :: string:
+    set {_id} to "%minecraft id of {_p}'s tool%"
+    if {_id} ends with "_helmet":
+        return "Helmet"
+    if {_id} ends with "_chestplate":
+        return "Chestplate"
+    if {_id} ends with "_leggings":
+        return "Leggings"
+    if {_id} ends with "_boots":
+        return "Boots"
+    return "none"
+
+
+local function getDisplayName(ore: string) :: string:
+    if {_ore} is "wood":
+        return "Wooden"
+
+    return toCapital({_ore})

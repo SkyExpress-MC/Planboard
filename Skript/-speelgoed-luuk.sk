@@ -1,0 +1,90 @@
+# ============================
+#   Skyexpress - Speelgoed
+# ============================
+
+options:
+	jet_prefix: &8[&b&lJetpack&8] &r
+
+
+# ============================
+#        Jetpack Item
+# ============================
+
+function jetpackItem() :: item:
+	set {_item} to iron chestplate named "&b&lJetpack"
+	set lore of {_item} to "", "&7Right-click to toggle on/off", "&7Hold shift to fly up", ""
+	return {_item}
+
+
+# ============================
+#         Commands
+# ============================
+
+command /speelgoed-luuk <text> <text>:
+	permission: speelgoed.luuk
+	executable by: players
+	trigger:
+		if arg-1 is "give":
+			if arg-2 is "jetpack":
+				give player jetpackItem()
+				send "{@jet_prefix}&aJetpack received!" to player
+			else:
+				send "{@jet_prefix}&cUnknown item: &f%arg-2%" to player
+		else:
+			send "{@jet_prefix}&cUsage: /speelgoed-luuk give <item>" to player
+
+
+# ============================
+#       Jetpack Toggle
+# ============================
+
+on right click:
+	if name of player's chestplate is "&b&lJetpack":
+		cancel event
+		if {jetpack.on::%player%} is true:
+			set {jetpack.on::%player%} to false
+			set {jetpack.shift::%player%} to false
+			send action bar "{@jet_prefix}&cOFF" to player
+		else:
+			set {jetpack.on::%player%} to true
+			set {jetpack.shift::%player%} to false
+			send action bar "{@jet_prefix}&aON" to player
+
+
+# Intercept sneak so the player doesn't crouch, but still use the key for thrust
+on sneak toggle:
+	if name of player's chestplate is "&b&lJetpack":
+		if {jetpack.on::%player%} is true:
+			cancel event
+			if player is sneaking:
+				set {jetpack.shift::%player%} to false
+			else:
+				set {jetpack.shift::%player%} to true
+
+
+# ============================
+#       Jetpack Engine
+# ============================
+
+every 2 ticks:
+	loop all players:
+		if {jetpack.on::%loop-player%} is true:
+			if name of chestplate of loop-player is "&b&lJetpack":
+				if {jetpack.shift::%loop-player%} is true:
+					set {_vel} to velocity of loop-player
+					set y component of {_vel} to 0.5
+					set velocity of loop-player to {_vel}
+					spawn 3 smoke particles at location 0.5 below loop-player
+			else:
+				set {jetpack.on::%loop-player%} to false
+				set {jetpack.shift::%loop-player%} to false
+				send action bar "{@jet_prefix}&cOFF &7(chestplate removed)" to loop-player
+
+
+on death:
+	set {jetpack.on::%player%} to false
+	set {jetpack.shift::%player%} to false
+
+on quit:
+	set {jetpack.on::%player%} to false
+	set {jetpack.shift::%player%} to false

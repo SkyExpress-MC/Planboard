@@ -1,0 +1,105 @@
+on load:
+	### Death messages ##
+    add "obliterated by" to {-deathmsgs::*}
+    add "squashed by" to {-deathmsgs::*}
+    add "KO'd by" to {-deathmsgs::*}
+    add "got smacked by" to {-deathmsgs::*}
+    add "beaten by" to {-deathmsgs::*}
+    add "dunked on by" to {-deathmsgs::*}
+    add "demolished by" to {-deathmsgs::*}
+    add "sent to the shadow realm by" to {-deathmsgs::*}
+    add "got bonked by" to {-deathmsgs::*}
+    add "got cooked by" to {-deathmsgs::*}
+    add "got clapped by" to {-deathmsgs::*}
+    add "was deleted by" to {-deathmsgs::*}
+
+	### Auto Broadcasts ###
+    add "&fObtain the beta discord role with &e/link" to {-broadcasts::*}
+    add "&fShare your feedback! Share opinions in beta-feedback" to {-broadcasts::*}
+    add "&fJoin our discord for updates and news by typing &e/discord" to {-broadcasts::*}
+    add "&fNeed help? Create a ticket in our discord!" to {-broadcasts::*}
+
+on first join:
+	make player execute command "/spawn"
+	broadcast "%{prefix}% &d%event-player% joined for the first time! &8&o(#%size of offlineplayers%)"
+	wait 2 ticks
+	make console execute command "/iatexture %player%"
+command /tutorial:
+	permission: sk.admin
+	trigger:
+		make console execute command "kingscenes playkingscene 4 %player%" 
+
+on join:
+	if {pvp::%player%} is not set:
+		set {pvp::%player%} to false
+
+on block ignite:
+	if event-block is tnt:
+		cancel event
+
+################### Variable initialization ###################
+on join:
+	if server is whitelisted:
+		player is not whitelisted
+		stop
+	if {data::level::%player%} is not set:
+		set {data::exp::%player%} to 0
+		set {data::level::%player%} to 0
+		set {data::prestige::%player%} to 0
+		set {data::kills::%player%} to 0
+		set {data::deaths::%player%} to 0
+		set {data::balance::%player%} to 0
+		set {data::blocks_mined::%player%} to 0
+		set {data::pvp::%player%} to false
+	set player's level to {data::level::%player%}
+	set player's level progress to ({data::exp::%player%} / GetMaxExp(player))
+
+
+################### Auto Broadcast ###################
+every 4 minutes:
+    if size of all players is greater than 0:
+        set {_index} to a random integer between 1 and size of {-broadcasts::*}
+        set {_msg} to {-broadcasts::%{_index}%}
+        broadcast "%nl% &6&l✦ %{_msg}%%nl%"
+
+################### Placeholder registration ###################
+placeholderapi placeholder with the prefix "skript":
+	switch identifier:
+		case "prestige":
+			set the result to {data::prestige::%player%} ? 0
+
+		case "level":
+			set the result to {data::level::%player%} ? 0
+		case "nextlevel":
+			set the result to {data::level::%player%} + 1
+		case "exp":
+			set the result to {data::exp::%player%} ? 0
+		case "exp_formatted":
+			set {_exp} to {data::exp::%player%}
+			set {_maxExp} to GetMaxExp(player)
+			set the result to GetProgress("percentage", {_exp}, {_maxExp}, 0)
+
+		case "formatted_kills":
+			set the result to formatNumbers({data::kills::%player%})
+		case "formatted_deaths":
+			set the result to formatNumbers({data::deaths::%player%})
+		case "pvp":
+			set the result to {data::pvp::%player%} ? 0
+
+		case "formatted_balance":
+			set the result to formatNumbers({data::balance::%player%})
+
+		case "formatted_blocks":
+			set the result to formatNumbers({data::blocks_mined::%player%})    
+
+		case "displayname":
+			set the result to player's displayname ? "&4Error"
+
+
+
+		
+on death of player:
+    add 1 to {data::deaths::%victim%}
+
+    if attacker is a player:
+        add 1 to {data::kills::%attacker%}
