@@ -2,8 +2,6 @@
 # Random server-wide mining event with configured drop spots per dimension.
 
 options:
-    meteor-prefix: &8[&6&lMeteor&8] &7
-    meteor-duration-minutes: 30
     meteor-currency-name: Tokens
 
 function meteor_tokens_add(p: player, amount: number):
@@ -111,22 +109,22 @@ function meteor_build(base: location):
 function meteor_list_spawns(p: player):
     send "&8&m----------&r <gradient:#FFB347:#5A1A00>&lMeteor Spawns</gradient> &8&m----------" to {_p}
     if size of {meteor.spawn-worlds::*} < 1:
-        send "{@meteor-prefix}&7No drop points are configured yet." to {_p}
+        send "%{prefix}% &7No drop points are configured yet." to {_p}
         stop
 
     loop {meteor.spawn-worlds::*}:
         set {_worldName} to loop-index
         set {_count} to size of {meteor.spawn::%{_worldName}%::*}
-        send "{@meteor-prefix}&f%{_worldName}% &7- &a%{_count}%&7/2 spots" to {_p}
+        send "%{prefix}% &f%{_worldName}% &7- &a%{_count}%&7/2 spots" to {_p}
         loop {meteor.spawn::%{_worldName}%::*}:
             set {_loc} to loop-value-2
-            send "{@meteor-prefix}&8- &f%{_loc}%" to {_p}
+            send "%{prefix}% &8- &f%{_loc}%" to {_p}
 
 function meteor_reward(p: player):
     set {_tokens} to random integer between 6 and 18
     meteor_tokens_add({_p}, {_tokens})
     set {_tokensText} to formatNumbers({_tokens})
-    send "{@meteor-prefix}&aYou mined meteor rock and found &f%{_tokensText}% {@meteor-currency-name}&a." to {_p}
+    send "%{prefix}% &aYou mined meteor rock and found &f%{_tokensText}% {@meteor-currency-name}&a." to {_p}
 
     set {_roll} to random integer between 1 and 100
     if {_roll} <= 8:
@@ -138,7 +136,7 @@ function meteor_reward(p: player):
     else if {_roll} <= 21:
         if {var::ore_fragment} is set:
             give 1 of {var::ore_fragment} to {_p}
-            send "{@meteor-prefix}&dA rare Ore Fragment fell out of the meteor." to {_p}
+            send "%{prefix}% &dA rare Ore Fragment fell out of the meteor." to {_p}
 
 function meteor_end(reason: text):
     if {meteor.active} is not set:
@@ -152,7 +150,7 @@ function meteor_end(reason: text):
     set {meteor.next-start-minutes} to 60
 
     if {_reason} is set:
-        broadcast "{@meteor-prefix}%{_reason}%"
+        broadcast "%{prefix}% %{_reason}%"
 
 function meteor_start():
     if {meteor.active} is set:
@@ -164,7 +162,7 @@ function meteor_start():
             add loop-index to {_worlds::*}
 
     if size of {_worlds::*} < 1:
-        broadcast "{@meteor-prefix}&cNo Meteor drop points are configured. Add 2 spots in at least one dimension first."
+        broadcast "%{prefix}% &cNo Meteor drop points are configured. Add 2 spots in at least one dimension first."
         stop
 
     set {_worldName} to random element out of {_worlds::*}
@@ -173,19 +171,19 @@ function meteor_start():
         stop
 
     set {meteor.active} to true
-    set {meteor.active-minutes} to {@meteor-duration-minutes}
+    set {meteor.active-minutes} to 30
     set {meteor.location} to {_spot}
     meteor_build({_spot})
 
     broadcast ""
-    broadcast "{@meteor-prefix}<gradient:#FFB347:#5A1A00>&lA METEOR HAS CRASHED!</gradient>"
-    broadcast "{@meteor-prefix}&7Mine through it together for rewards."
-    broadcast "{@meteor-prefix}&7Crash location: &f%{meteor.location}%"
+    broadcast "%{prefix}% <gradient:#FFB347:#5A1A00>&lA METEOR HAS CRASHED!</gradient>"
+    broadcast "%{prefix}% &7Mine through it together for rewards."
+    broadcast "%{prefix}% &7Crash location: &f%{meteor.location}%"
     broadcast ""
 
 function meteor_status(p: player):
     if {meteor.active} is not set:
-        send "{@meteor-prefix}&cNo meteor is active." to {_p}
+        send "%{prefix}% &cNo meteor is active." to {_p}
         stop
 
     send "&8&m----------&r <gradient:#FFB347:#5A1A00>&lMeteor Event</gradient> &8&m----------" to {_p}
@@ -196,14 +194,14 @@ function meteor_status(p: player):
 
 function meteor_help(p: player):
     send "&8&m----------&r <gradient:#FFB347:#5A1A00>&lMeteor Commands</gradient> &8&m----------" to {_p}
-    send "{@meteor-prefix}&f/meteor &8- &7Show this command list." to {_p}
-    send "{@meteor-prefix}&f/meteor status &8- &7Show the active meteor." to {_p}
+    send "%{prefix}% &f/meteor &8- &7Show this command list." to {_p}
+    send "%{prefix}% &f/meteor status &8- &7Show the active meteor." to {_p}
     if {_p} has permission "skyexpress.meteor.admin":
-        send "{@meteor-prefix}&f/meteor start &8- &7Force start an event." to {_p}
-        send "{@meteor-prefix}&f/meteor stop &8- &7Stop the active event." to {_p}
-        send "{@meteor-prefix}&f/meteor setspawn &8- &7Add a drop spot." to {_p}
-        send "{@meteor-prefix}&f/meteor spawns &8- &7List configured drop spots." to {_p}
-        send "{@meteor-prefix}&f/meteor clearspawns &8- &7Clear all drop spots." to {_p}
+        send "%{prefix}% &f/meteor start &8- &7Force start an event." to {_p}
+        send "%{prefix}% &f/meteor stop &8- &7Stop the active event." to {_p}
+        send "%{prefix}% &f/meteor setspawn &8- &7Add a drop spot." to {_p}
+        send "%{prefix}% &f/meteor spawns &8- &7List configured drop spots." to {_p}
+        send "%{prefix}% &f/meteor clearspawns &8- &7Clear all drop spots." to {_p}
     send "&8&m--------------------------------" to {_p}
 
 every 1 minute:
@@ -293,7 +291,7 @@ command /meteor [<text>]:
         if player has permission "skyexpress.meteor.admin":
             if arg-1 is "start":
                 if {meteor.active} is set:
-                    send "{@meteor-prefix}&cA meteor is already active." to player
+                    send "%{prefix}% &cA meteor is already active." to player
                     stop
                 meteor_start()
                 stop
@@ -305,11 +303,11 @@ command /meteor [<text>]:
             if arg-1 is "setspawn":
                 set {_worldName} to name of world of player
                 if size of {meteor.spawn::%{_worldName}%::*} >= 2:
-                    send "{@meteor-prefix}&cThat dimension already has 2 Meteor spots." to player
+                    send "%{prefix}% &cThat dimension already has 2 Meteor spots." to player
                     stop
                 add location of player to {meteor.spawn::%{_worldName}%::*}
                 set {meteor.spawn-worlds::%{_worldName}%} to true
-                send "{@meteor-prefix}&aAdded this location for &f%{_worldName}%&a. Use 2 spots per dimension." to player
+                send "%{prefix}% &aAdded this location for &f%{_worldName}%&a. Use 2 spots per dimension." to player
                 stop
 
             if arg-1 is "spawns":
@@ -320,7 +318,7 @@ command /meteor [<text>]:
                 delete {meteor.spawn::*}
                 delete {meteor.spawn-worlds::*}
                 delete {meteor.next-start-minutes}
-                send "{@meteor-prefix}&aCleared all Meteor drop points." to player
+                send "%{prefix}% &aCleared all Meteor drop points." to player
                 stop
 
-        send "{@meteor-prefix}&cUse &f/meteor&c or &f/meteor status&c." to player
+        send "%{prefix}% &cUse &f/meteor&c or &f/meteor status&c." to player

@@ -325,7 +325,7 @@ function cemenu_can_pay(p: player, level: number) :: boolean:
     set {_tokens} to cemenu_token_cost({_level})
     if cemenu_tokens({_p}) < {_tokens}:
         set {_tokensText} to formatNumbers({_tokens})
-        send "{@cemenu-prefix}&cYou need &d%{_tokensText}% Tokens &cfor that level." to {_p}
+        send "%{prefix}% &cYou need &d%{_tokensText}% Tokens &cfor that level." to {_p}
         return false
     set {_matAmount} to cemenu_material_amount({_level})
     if {_matAmount} > 0:
@@ -333,7 +333,7 @@ function cemenu_can_pay(p: player, level: number) :: boolean:
         set amount of {_mat} to {_matAmount}
         if {_p}'s inventory does not contain {_mat}:
             set {_matName} to cemenu_material_name({_level})
-            send "{@cemenu-prefix}&cYou need &f%{_matAmount}%x %{_matName}% &cfor that level." to {_p}
+            send "%{prefix}% &cYou need &f%{_matAmount}%x %{_matName}% &cfor that level." to {_p}
             return false
     return true
 
@@ -364,17 +364,17 @@ function cemenu_run_ae_command(p: player, cmd: text):
 function cemenu_apply(p: player, category: text, id: text, level: number):
     set {_uuid} to uuid of {_p}
     if {_level} > cemenu_max_level({_id}):
-        send "{@cemenu-prefix}&cThat enchant does not have level &f%{_level}%&c." to {_p}
+        send "%{prefix}% &cThat enchant does not have level &f%{_level}%&c." to {_p}
         stop
     set {_item} to {data::customenchantmenu::working-item::%{_uuid}%}
     if {_item} is not set:
-        send "{@cemenu-prefix}&cPut an item in the center slot first." to {_p}
+        send "%{prefix}% &cPut an item in the center slot first." to {_p}
         stop
     if {_item} is air:
-        send "{@cemenu-prefix}&cPut an item in the center slot first." to {_p}
+        send "%{prefix}% &cPut an item in the center slot first." to {_p}
         stop
     if cemenu_is_valid_item({_category}, {_item}) is false:
-        send "{@cemenu-prefix}&cThat enchant requires a &f%{_category}% &citem." to {_p}
+        send "%{prefix}% &cThat enchant requires a &f%{_category}% &citem." to {_p}
         stop
     if cemenu_can_pay({_p}, {_level}) is false:
         stop
@@ -383,12 +383,12 @@ function cemenu_apply(p: player, category: text, id: text, level: number):
     cemenu_run_ae_command({_p}, "ae enchant %{_id}% %{_level}%")
     set {_after} to {data::customenchantmenu::working-item::%{_uuid}%}
     if {_after} is {_before}:
-        send "{@cemenu-prefix}&cAdvancedEnchantments did not modify the item. Check enchant ID &f%{_id}%&c." to {_p}
+        send "%{prefix}% &cAdvancedEnchantments did not modify the item. Check enchant ID &f%{_id}%&c." to {_p}
         stop
     cemenu_take_payment({_p}, {_level})
     cemenu_record_history({_p}, {_before}, {_after}, {_tokens})
     set {_name} to cemenu_display_name({_id})
-    send "{@cemenu-prefix}&aApplied &f%{_name}% %{_level}% &ato your inserted item." to {_p}
+    send "%{prefix}% &aApplied &f%{_name}% %{_level}% &ato your inserted item." to {_p}
     set {data::customenchantmenu::switching::%{_uuid}%} to true
     cemenu_open_levels({_p}, {_category}, {_id})
 
@@ -396,14 +396,14 @@ function cemenu_refund(p: player):
     set {_uuid} to uuid of {_p}
     set {_item} to {data::customenchantmenu::working-item::%{_uuid}%}
     if {_item} is not set:
-        send "{@cemenu-prefix}&cPut an item in the center slot first." to {_p}
+        send "%{prefix}% &cPut an item in the center slot first." to {_p}
         stop
     if {_item} is air:
-        send "{@cemenu-prefix}&cPut an item in the center slot first." to {_p}
+        send "%{prefix}% &cPut an item in the center slot first." to {_p}
         stop
     set {_historyId} to cemenu_history_id({_p}, {_item})
     if {_historyId} <= 0:
-        send "{@cemenu-prefix}&cThis item has no custom enchant history to refund." to {_p}
+        send "%{prefix}% &cThis item has no custom enchant history to refund." to {_p}
         stop
     set {_spent} to {data::customenchantmenu::history::spent::%{_uuid}%::%{_historyId}%}
     set {data::customenchantmenu::working-item::%{_uuid}%} to {data::customenchantmenu::history::original::%{_uuid}%::%{_historyId}%}
@@ -412,7 +412,7 @@ function cemenu_refund(p: player):
     set {_refund} to rounded down {_refund}
     add {_refund} to {data::tokens::%{_uuid}%}
     set {_refundText} to formatNumbers({_refund})
-    send "{@cemenu-prefix}&aRestored the original item and refunded &d%{_refundText}% Tokens&a." to {_p}
+    send "%{prefix}% &aRestored the original item and refunded &d%{_refundText}% Tokens&a." to {_p}
     set {data::customenchantmenu::switching::%{_uuid}%} to true
     cemenu_open_categories({_p})
 
