@@ -90,8 +90,6 @@ command /endcutscene <player>:
         play sound "entity.enderman.ambient" to {_p}        
         send "{@myst} &fHe is a busy man, so begin your journey and when he is ready, he will call upon you." to {_p}
         wait 3 seconds
-        make console execute command "/quest start %{_p}% first_axe"
-        wait 2 seconds
         play sound "minecraft:ui.toast.challenge_complete" to {_p}
         make console execute command "/lp user %{_p}% permission set skyexpress.trail.beta true"
         make console execute command "/lp user %{_p}% permission set skyexpress.chatcolor.beta true"
