@@ -463,7 +463,8 @@ command /blackmarket [<text>] [<number>]:
                 stop
 
 
-        send "%{prefix}% &cUse &f/blackmarket&c, or &f/bm for help&c." to player
+        send "{@blackmarket-prefix}&cUse &f/blackmarket&c, or &f/bm for help&c." to player
+
 
 # SkyExpress Tokens
 # Digital token currency used by special systems like the Black Market.
