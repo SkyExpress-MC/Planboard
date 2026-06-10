@@ -49,53 +49,53 @@ command /potion <string> [<player>]:
             case "haste":
                 if arg-2 is set:
                     give hastePotion() to arg-2
-                    send "&aGave &6Haste Potion &ato %arg-1%!" to player
+                    send "%{prefix}% &aGave &6Haste Potion &ato %arg-1%!" to player
 
                 else:
                     give hastePotion() to player
-                    send "&aYou received a &6Haste Potion&a!" to player
+                    send "%{prefix}% &aYou received a &6Haste Potion&a!" to player
             case "rage":
                 if arg-2 is set:
                     give ragePotion() to arg-2
-                    send "&aGave &cRage Potion&a to %arg-1%!" to player
+                    send "%{prefix}% &aGave &cRage Potion&a to %arg-1%!" to player
                 else:
                     give ragePotion() to player
-                    send "&aYou received a &cRage Potion&a!" to player
+                    send "%{prefix}% &aYou received a &cRage Potion&a!" to player
             case "ironskin":
                 if arg-2 is set:
                     give ironSkin() to arg-2
-                    send "&aGave &7Iron Skin &ato %arg-1%!" to player
+                    send "%{prefix}% &aGave &7Iron Skin &ato %arg-1%!" to player
                 else:
                     give ironSkin() to player
-                    send "&aYou received an &7Iron Skin&a potion!" to player
+                    send "%{prefix}% &aYou received an &7Iron Skin&a potion!" to player
             case "miner":
                 if arg-2 is set:
                     give minerPotion() to arg-2
-                    send "&aGave &6Miner's Potion&a to %arg-1%!" to player
+                    send "%{prefix}% &aGave &6Miner's Potion&a to %arg-1%!" to player
                 else:
                     give minerPotion() to player
-                    send "&aYou received a &6Miner's Potion&a!" to player
+                    send "%{prefix}% &aYou received a &6Miner's Potion&a!" to player
             case "regen":
                 if arg-2 is set:
                     give regenPotion() to arg-2
-                    send "&aGave &fRegen Potion &ato %arg-1%!" to player
+                    send "%{prefix}% &aGave &fRegen Potion &ato %arg-1%!" to player
                 else:
                     give regenPotion() to player
-                    send "&aYou received a &fRegen Potion&a!" to player
+                    send "%{prefix}% &aYou received a &fRegen Potion&a!" to player
             case "speed":
                 if arg-2 is set:
                     give speedPotion() to arg-2
-                    send "&aGave &fSpeed Potion &ato %arg-1%!" to player
+                    send "%{prefix}% &aGave &fSpeed Potion &ato %arg-1%!" to player
                 else:
                     give speedPotion() to player
-                    send "&aYou received a &fSpeed Potion&a!" to player
+                    send "&%{prefix}% aYou received a &fSpeed Potion&a!" to player
             case "jump boost":
                 if arg-2 is set:
                     give jumpPotion() to arg-2
-                    send "&aGave &fJump Boost Potion &ato %arg-1%!" to player
+                    send "%{prefix}% &aGave &fJump Boost Potion &ato %arg-1%!" to player
                 else:
                     give jumpPotion() to player
-                    send "&aYou received a &fJump Boost Potion&a!" to player
+                    send "%{prefix}% &aYou received a &fJump Boost Potion&a!" to player
 
 on tab complete of "/potion":
     set tab completions for position 1 to "haste", "rage", "ironskin", "regen", "speed", "jump boost" and "miner"

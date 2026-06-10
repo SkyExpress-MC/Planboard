@@ -99,20 +99,20 @@ command /cspy [<text>] [<offlineplayer>]:
 	trigger:
 		if arg-1 is "on":
 			set {cspy::%player's uuid%} to true
-			send "&8[&cCSPY&8] &7Command spy is now &aENABLED" to player
+			send "%{prefix}%  &7Command spy is now &aENABLED" to player
 			stop
 		if arg-1 is "off":
 			delete {cspy::%player's uuid%}
-			send "&8[&cCSPY&8] &7Command spy is now &cDISABLED" to player
+			send "%{prefix}%  &7Command spy is now &cDISABLED" to player
 			stop
 		else:
 			if {cspy::%player's uuid%} is not set:
 				set {cspy::%player's uuid%} to true
-				send "&8[&cCSPY&8] &7Command spy is now &aENABLED" to player
+				send "%{prefix}% &7Command spy is now &aENABLED" to player
 				stop
 			else:
 				delete {cspy::%player's uuid%}
-				send "&8[&cCSPY&8] &7Command spy is now &cDISABLED" to player
+				send "%{prefix}%  &7Command spy is now &cDISABLED" to player
 				stop
 
 on tab complete for "/cspy":
