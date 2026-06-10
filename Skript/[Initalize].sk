@@ -24,10 +24,14 @@ on first join:
 	broadcast "%{prefix}% &d%event-player% joined for the first time! &8&o(#%size of offlineplayers%)"
 	wait 2 ticks
 	make console execute command "/iatexture %player%"
+command /cutscene <player>:
+	permission: sk.admin
+	trigger:
+		make console execute command "kingscenes playkingscene 4 %arg-1%"
 command /tutorial <player>:
 	permission: sk.admin
 	trigger:
-		make console execute command "kingscenes playkingscene 4 %arg-1%" 
+		make console execute command "/quest start %arg-1% first_axe"
 
 on join:
 	if {pvp::%player%} is not set:
