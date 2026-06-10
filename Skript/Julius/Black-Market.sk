@@ -1,5 +1,4 @@
 options:
-    blackmarket-prefix: &8[&5&lBlack Market&8] &7
     blackmarket-duration-minutes: 15
     blackmarket-currency-name: Tokens
 
@@ -133,16 +132,16 @@ function blackmarket_spawn_npc():
 function blackmarket_list_spawns(p: player):
     send "&8&m----------&r <gradient:#B967FF:#120018>&lBlack Market Spawns</gradient> &8&m----------" to {_p}
     if size of {blackmarket.spawn-worlds::*} < 1:
-        send "{@blackmarket-prefix}&7No spawn points are configured yet." to {_p}
+        send "%{prefix}% &7No spawn points are configured yet." to {_p}
         stop
 
     loop {blackmarket.spawn-worlds::*}:
         set {_worldName} to loop-index
         set {_count} to size of {blackmarket.spawn::%{_worldName}%::*}
-        send "{@blackmarket-prefix}&f%{_worldName}% &7- &a%{_count}%&7/2 spots" to {_p}
+        send "%{prefix}% &f%{_worldName}% &7- &a%{_count}%&7/2 spots" to {_p}
         loop {blackmarket.spawn::%{_worldName}%::*}:
             set {_loc} to loop-value-2
-            send "{@blackmarket-prefix}&8- &f%{_loc}%" to {_p}
+            send "%{prefix}% &8- &f%{_loc}%" to {_p}
 
 function blackmarket_set_deal(id: number):
     set {blackmarket.deal} to {_id}
@@ -218,7 +217,7 @@ function blackmarket_end(reason: text):
     delete {blackmarket.sold::*}
 
     if {_reason} is set:
-        broadcast "{@blackmarket-prefix}%{_reason}%"
+        broadcast "%{prefix}% %{_reason}%"
 
 function blackmarket_start():
     if {blackmarket.active} is set:
@@ -230,7 +229,7 @@ function blackmarket_start():
             add loop-index to {_worlds::*}
 
     if size of {_worlds::*} < 1:
-        broadcast "{@blackmarket-prefix}&cNo Black Market spawn points are configured. Add 2 spots in at least one dimension first."
+        broadcast "%{prefix}% &cNo Black Market spawn points are configured. Add 2 spots in at least one dimension first."
         stop
 
     set {blackmarket.active} to true
@@ -242,39 +241,39 @@ function blackmarket_start():
     set {_itemName} to blackmarket_format_item({blackmarket.item})
     set {_priceText} to formatNumbers({blackmarket.price})
     broadcast ""
-    broadcast "{@blackmarket-prefix}<gradient:#B967FF:#120018>&lA BLACK MARKET BUYER HAS ARRIVED!</gradient>"
-    broadcast "{@blackmarket-prefix}&7Buying: &f%{blackmarket.request}% &8(&f%{_itemName}%&8)"
-    broadcast "{@blackmarket-prefix}&7Price: &a%{_priceText}% {@blackmarket-currency-name} &7each"
-    broadcast "{@blackmarket-prefix}&7Server stock left: &c%{blackmarket.stock-left}% &8- &f/blackmarket sell <amount>"
+    broadcast "%{prefix}% <gradient:#B967FF:#120018>&lA BLACK MARKET BUYER HAS ARRIVED!</gradient>"
+    broadcast "%{prefix}% &7Buying: &f%{blackmarket.request}% &8(&f%{_itemName}%&8)"
+    broadcast "%{prefix}% &7Price: &a%{_priceText}% {@blackmarket-currency-name} &7each"
+    broadcast "%{prefix}% &7Server stock left: &c%{blackmarket.stock-left}% &8- &f/blackmarket sell <amount>"
     if {blackmarket.npc-location} is set:
-        broadcast "{@blackmarket-prefix}&7Buyer location: &f%{blackmarket.npc-location}%"
+        broadcast "%{prefix}% &7Buyer location: &f%{blackmarket.npc-location}%"
     broadcast ""
 
 function blackmarket_sell(p: player, amount: number):
     if {blackmarket.active} is not set:
-        send "{@blackmarket-prefix}&cThe Black Market buyer is not here right now." to {_p}
+        send "%{prefix}% &cThe Black Market buyer is not here right now." to {_p}
         stop
     if {blackmarket.stock-left} <= 0:
         blackmarket_end("&cThe buyer is sold out and disappeared.")
         stop
     if {blackmarket.npc-location} is not set:
-        send "{@blackmarket-prefix}&cThe buyer location is missing. Tell staff to respawn it." to {_p}
+        send "%{prefix}% &cThe buyer location is missing. Tell staff to respawn it." to {_p}
         stop
     if world of {_p} is not world of {blackmarket.npc-location}:
-        send "{@blackmarket-prefix}&cYou must be within &f5 blocks &cof the buyer to sell." to {_p}
+        send "%{prefix}% &cYou must be within &f5 blocks &cof the buyer to sell." to {_p}
         stop
     if distance between location of {_p} and {blackmarket.npc-location} > 5:
-        send "{@blackmarket-prefix}&cYou must be within &f5 blocks &cof the buyer to sell." to {_p}
+        send "%{prefix}% &cYou must be within &f5 blocks &cof the buyer to sell." to {_p}
         stop
     set {_amount} to floor({_amount})
     if {_amount} < 1:
-        send "{@blackmarket-prefix}&cUse &f/blackmarket sell <amount>&c." to {_p}
+        send "%{prefix}% &cUse &f/blackmarket sell <amount>&c." to {_p}
         stop
 
     set {_item} to {blackmarket.item}
     set {_available} to amount of {_item} in {_p}'s inventory
     if {_available} < 1:
-        send "{@blackmarket-prefix}&cYou do not have the item the buyer wants." to {_p}
+        send "%{prefix}% &cYou do not have the item the buyer wants." to {_p}
         stop
 
     set {_sellAmount} to {_amount}
@@ -292,15 +291,15 @@ function blackmarket_sell(p: player, amount: number):
     set {_uuid} to uuid of {_p}
     add {_sellAmount} to {blackmarket.sold::%{_uuid}%}
 
-    send "{@blackmarket-prefix}&aSold &f%{_sellAmount}% &aitems for &f%{_earnedText}% {@blackmarket-currency-name}&a." to {_p}
-    broadcast "{@blackmarket-prefix}&f%{_p}% &7sold &f%{_sellAmount}%&7. Stock left: &c%{blackmarket.stock-left}%"
+    send "%{prefix}% &aSold &f%{_sellAmount}% &aitems for &f%{_earnedText}% {@blackmarket-currency-name}&a." to {_p}
+    broadcast "%{prefix}% &f%{_p}% &7sold &f%{_sellAmount}%&7. Stock left: &c%{blackmarket.stock-left}%"
 
     if {blackmarket.stock-left} <= 0:
         blackmarket_end("&cThe buyer bought everything and vanished.")
 
 function blackmarket_status(p: player):
     if {blackmarket.active} is not set:
-        send "{@blackmarket-prefix}&cNo Black Market buyer is active." to {_p}
+        send "%{prefix}% &cNo Black Market buyer is active." to {_p}
         stop
 
     set {_itemName} to blackmarket_format_item({blackmarket.item})
@@ -315,17 +314,17 @@ function blackmarket_status(p: player):
 
 function blackmarket_help(p: player):
     send "&8&m----------&r <gradient:#B967FF:#120018>&lBlack Market Commands</gradient> &8&m----------" to {_p}
-    send "{@blackmarket-prefix}&f/bm &8- &7Show this command list." to {_p}
-    send "{@blackmarket-prefix}&f/bm sell <amount> &8- &7Sell wanted items." to {_p}
-    send "{@blackmarket-prefix}&f/bm all &8- &7Sell all wanted items you have." to {_p}
+    send "%{prefix}% &f/bm &8- &7Show this command list." to {_p}
+    send "%{prefix}% &f/bm sell <amount> &8- &7Sell wanted items." to {_p}
+    send "%{prefix}% &f/bm all &8- &7Sell all wanted items you have." to {_p}
     if {_p} has permission "skyexpress.blackmarket.admin":
-        send "{@blackmarket-prefix}&f/bm spawns &8- &7List configured market spots." to {_p}
-        send "{@blackmarket-prefix}&f/bm start &8- &7Force start an event." to {_p}
-        send "{@blackmarket-prefix}&f/bm spawn &8- &7Respawn the active buyer." to {_p}
-        send "{@blackmarket-prefix}&f/bm stop &8- &7Stop the active event." to {_p}
-        send "{@blackmarket-prefix}&f/bm reroll &8- &7Reroll the wanted item." to {_p}
-        send "{@blackmarket-prefix}&f/bm setspawn &8- &7Add a spawn spot." to {_p}
-        send "{@blackmarket-prefix}&f/bm clearspawns &8- &7Clear all spawn spots." to {_p}
+        send "%{prefix}% &f/bm spawns &8- &7List configured market spots." to {_p}
+        send "%{prefix}% &f/bm start &8- &7Force start an event." to {_p}
+        send "%{prefix}% &f/bm spawn &8- &7Respawn the active buyer." to {_p}
+        send "%{prefix}% &f/bm stop &8- &7Stop the active event." to {_p}
+        send "%{prefix}% &f/bm reroll &8- &7Reroll the wanted item." to {_p}
+        send "%{prefix}% &f/bm setspawn &8- &7Add a spawn spot." to {_p}
+        send "%{prefix}% &f/bm clearspawns &8- &7Clear all spawn spots." to {_p}
     send "&8&m-------------------------------------" to {_p}
 
 every 1 minute:
@@ -397,18 +396,18 @@ command /blackmarket [<text>] [<number>]:
 
         if arg-1 is "sell":
             if arg-2 is not set:
-                send "{@blackmarket-prefix}&cUse &f/blackmarket sell <amount>&c." to player
+                send "%{prefix}% &cUse &f/blackmarket sell <amount>&c." to player
                 stop
             blackmarket_sell(player, arg-2)
             stop
 
         if arg-1 is "all":
             if {blackmarket.active} is not set:
-                send "{@blackmarket-prefix}&cThe Black Market buyer is not here right now." to player
+                send "%{prefix}% &cThe Black Market buyer is not here right now." to player
                 stop
             set {_amount} to amount of {blackmarket.item} in player's inventory
             if {_amount} < 1:
-                send "{@blackmarket-prefix}&cYou do not have the item the buyer wants." to player
+                send "%{prefix}% &cYou do not have the item the buyer wants." to player
                 stop
             blackmarket_sell(player, {_amount})
             stop
@@ -416,7 +415,7 @@ command /blackmarket [<text>] [<number>]:
         if player has permission "skyexpress.blackmarket.admin":
             if arg-1 is "start":
                 if {blackmarket.active} is set:
-                    send "{@blackmarket-prefix}&cA Black Market buyer is already active." to player
+                    send "%{prefix}% &cA Black Market buyer is already active." to player
                     stop
                 blackmarket_start()
                 stop
@@ -424,7 +423,7 @@ command /blackmarket [<text>] [<number>]:
             if arg-1 is "spawn":
                 if {blackmarket.active} is set:
                     blackmarket_spawn_npc()
-                    send "{@blackmarket-prefix}&aRespawned the active Black Market buyer at a configured spot." to player
+                    send "%{prefix}% &aRespawned the active Black Market buyer at a configured spot." to player
                     stop
                 blackmarket_start()
                 stop
@@ -439,28 +438,28 @@ command /blackmarket [<text>] [<number>]:
 
             if arg-1 is "reroll":
                 if {blackmarket.active} is not set:
-                    send "{@blackmarket-prefix}&cNo Black Market buyer is active." to player
+                    send "%{prefix}% &cNo Black Market buyer is active." to player
                     stop
                 blackmarket_set_deal(random integer between 1 and 8)
-                send "{@blackmarket-prefix}&aRerolled the active Black Market deal." to player
+                send "%{prefix}% &aRerolled the active Black Market deal." to player
                 blackmarket_status(player)
                 stop
 
             if arg-1 is "setspawn":
                 set {_worldName} to name of world of player
                 if size of {blackmarket.spawn::%{_worldName}%::*} >= 2:
-                    send "{@blackmarket-prefix}&cThat dimension already has 2 Black Market spots." to player
+                    send "%{prefix}% &cThat dimension already has 2 Black Market spots." to player
                     stop
                 add location of player to {blackmarket.spawn::%{_worldName}%::*}
                 set {blackmarket.spawn-worlds::%{_worldName}%} to true
-                send "{@blackmarket-prefix}&aAdded this location for &f%{_worldName}%&a. Use 2 spots per dimension." to player
+                send "%{prefix}% &aAdded this location for &f%{_worldName}%&a. Use 2 spots per dimension." to player
                 stop
 
             if arg-1 is "clearspawns":
                 delete {blackmarket.spawn::*}
                 delete {blackmarket.spawn-worlds::*}
                 delete {blackmarket.next-start-minutes}
-                send "{@blackmarket-prefix}&aCleared all Black Market spawn points." to player
+                send "%{prefix}% &aCleared all Black Market spawn points." to player
                 stop
 
 

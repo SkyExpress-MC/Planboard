@@ -13,7 +13,7 @@ jobs:
       - uses: Andromedov/skript-tests-action@v1.0
         with:
           minecraft-version: '1.21'
-          skript-version: '2.12.1'
+          skript-version: '2.15.2'
           path-to-skripts: './Skript'
           path-to-addons: './addons'
           server-software: 'paper'

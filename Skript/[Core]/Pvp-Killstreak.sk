@@ -28,7 +28,7 @@ on exit of region named "spawnarea":
 on enter of region named "spawnarea":
     if {combattag::%player's uuid%} is set:
         cancel event
-        send "%{prefix}%&7You may not enter spawn while in combat." to player
+        send "%{prefix}% &7You may not enter spawn while in combat." to player
     else:
         send "%{prefix}% &aPvP &7is now &adisabled&7!" to player
 
@@ -151,7 +151,7 @@ on command:
     loop {blockedcmds::*}:
         if command is loop-value:
             cancel event
-            send "%{prefix}%&cYou may not execute this command while in combat!" to player
+            send "%{prefix}% &cYou may not execute this command while in combat!" to player
             stop
 
 on right click:
@@ -163,7 +163,7 @@ on right click:
 
 on quit:
     {combattag::%player's uuid%} is set
-    broadcast "%{prefix}%&c%player% just combat logged!"
+    broadcast "%{prefix}% &c%player% just combat logged!"
     kill player
     delete {combattag::%player's uuid%}
 
@@ -172,7 +172,7 @@ on quit:
 local function applyCombatTag(player1: player, player2: player):
     if {combattag::%{_player1}%} is not set:
         send "&c&lCombat Tag!" to {_player1}
-        send "%{prefix}%You hit %{_player2}%! You may not go to spawn now." to {_player1}
+        send "%{prefix}% You hit %{_player2}%! You may not go to spawn now." to {_player1}
         set {combattag::%{_player1}%} to now
         tagLoop({_player1})
     else:
@@ -184,6 +184,6 @@ function tagLoop(p: player):
         {combattag::%{_p}'s uuid%} is set
         if difference between {combattag::%{_p}'s uuid%} and now is greater than {@duration} seconds:
             delete {combattag::%{_p}'s uuid%}
-            send "%{prefix}%&aYou are out of combat, you may go to spawn now!" to {_p}
+            send "%{prefix}% &aYou are out of combat, you may go to spawn now!" to {_p}
             stop
         wait 1 second

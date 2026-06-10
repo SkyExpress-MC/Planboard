@@ -26,13 +26,18 @@ on first join:
 	make console execute command "/iatexture %player%"
 command /cutscene <player>:
 	permission: sk.admin
+	cooldown: 5 seconds
 	trigger:
 		make console execute command "kingscenes playkingscene 4 %arg-1%"
+		
 command /tutorial <player>:
 	permission: sk.admin
 	trigger:
 		make console execute command "/quest start %arg-1% first_axe"
 
+command /discord:
+    trigger:
+        send "&8[&9Discord&8] &7&fJoin our Discord: &bhttps://discord.gg/E5cHVkuv5R" to player
 on join:
 	if {pvp::%player%} is not set:
 		set {pvp::%player%} to false
