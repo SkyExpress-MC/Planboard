@@ -29,7 +29,14 @@ command /cutscene <player>:
 	cooldown: 5 seconds
 	trigger:
 		make console execute command "kingscenes playkingscene 4 %arg-1%"
-		
+		set {blockcommand::%arg-1's uuid%} to true
+		wait 80 seconds
+		delete {blockcommand::%arg-1's uuid%}
+on command:
+	if {blockcommand::%player's uuid%} is true:
+		cancel event
+		send "%{prefix}% You may not execute commands inside of a cutscene!" to player
+		play sound "ENTITY.VILLAGER.NO" to player
 command /tutorial <player>:
 	permission: sk.admin
 	trigger:
